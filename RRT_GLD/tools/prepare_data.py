@@ -12,7 +12,7 @@ def extract_resolution(data_dir, records, gnd=None):
     outs = []
     for i in range(len(records)):
         entry = records[i]
-        name, label = entry.split(',')
+        name, label = entry.split(';;')
         path = osp.join(data_dir, name)
         if gnd is not None:
             bbx = gnd['gnd'][i]['bbx']
@@ -24,7 +24,7 @@ def extract_resolution(data_dir, records, gnd=None):
             except Warning:
                 print('corrupted image:', i, name)
             width, height = img.size
-        line = ','.join([name, label, str(width), str(height)])
+        line = ';;'.join([name, label, str(width), str(height)])
         outs.append(line)
         if i % 1000 == 0:
             print(i)
@@ -201,9 +201,66 @@ def generate_paris(data_dir, test_file, index_file, gnd_file, require_resolution
     with open(index_file, 'w') as f:
         f.write('\n'.join(index))
 
+###########################################################################
+## ViQuAE
+def load_viquae_dataset(data_dir, gnd_file):
+    prefix = 'jpg'
+    gnd = pickle_load(gnd_file)
+    query_names   = gnd['qimlist']
+    gallery_names = gnd['imlist']
+    # query_names   = [i+"_1" for i in query_names]
+    # gallery_names = [i+"_1" for i in gallery_names]
+
+
+    categories = []
+    for x in query_names:
+        cat = '_'.join(x.split('_')[:-1])
+        categories.append(cat)
+    for x in gallery_names:
+        cat = '_'.join(x.split('_')[:-1])
+        categories.append(cat)
+    categories = sorted(list(set(categories)))
+    cat_to_label = dict(zip(categories, range(len(categories))))
+
+    query_outs   = [';;'.join([ osp.join(prefix, x), str(cat_to_label['_'.join(x.split('_')[:-1])]) ]) for x in query_names] 
+    gallery_outs = [';;'.join([ osp.join(prefix, x), str(cat_to_label['_'.join(x.split('_')[:-1])]) ]) for x in gallery_names]
+    
+    return query_outs, gallery_outs
+
+
+ex4 = Experiment('Prepare ViQuAE Dataset')
+
+
+@ex4.config
+def config():
+    data_dir   = osp.join('data', 'viquae_images')
+    test_file  = 'test_query.txt'
+    index_file = 'test_gallery.txt'
+    gnd_file   = 'gnd_dev_viquae.pkl'
+    require_resolution = True
+
+
+@ex4.main
+def generate_viquae(data_dir, test_file, index_file, gnd_file, require_resolution):
+    test_file  = osp.join(data_dir, test_file)
+    index_file = osp.join(data_dir, index_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    test, index = load_viquae_dataset(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        test  = extract_resolution(data_dir, test)
+        index = extract_resolution(data_dir, index)
+
+    with open(test_file, 'w') as f:
+        f.write('\n'.join(test))
+    with open(index_file, 'w') as f:
+        f.write('\n'.join(index))
+
 
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     # ex1.run()
-    ex2.run()
-    ex3.run()
+    # ex2.run()
+    # ex3.run()
+    ex4.run()
