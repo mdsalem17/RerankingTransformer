@@ -88,8 +88,6 @@ tornado==6.0.4
 tqdm==4.48.2
 traitlets==4.3.3
 urllib3==1.25.10
-visdom==0.1.8.9
-visdom-logger @ git+git://github.com/luizgh/visdom_logger@3c0afb18321ef65382d0baf8866772c6a62f15a2
 webencodings==0.5.1
 websocket-client==0.57.0
 Werkzeug==1.0.1
