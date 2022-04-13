@@ -8,11 +8,11 @@ from sacred import Experiment
 from utils import pickle_load, pickle_save, json_save, ReadSolution
 
 
-def extract_resolution(data_dir, records, gnd=None):
+def extract_resolution(data_dir, records, gnd=None, split_char=','):
     outs = []
     for i in range(len(records)):
         entry = records[i]
-        name, label = entry.split(';;')
+        name, label = entry.split(split_char)
         path = osp.join(data_dir, name)
         if gnd is not None:
             bbx = gnd['gnd'][i]['bbx']
@@ -24,7 +24,7 @@ def extract_resolution(data_dir, records, gnd=None):
             except Warning:
                 print('corrupted image:', i, name)
             width, height = img.size
-        line = ';;'.join([name, label, str(width), str(height)])
+        line = split_char.join([name, label, str(width), str(height)])
         outs.append(line)
         if i % 1000 == 0:
             print(i)
@@ -228,15 +228,15 @@ def load_viquae_dataset(data_dir, gnd_file):
     return query_outs, gallery_outs
 
 
-ex4 = Experiment('Prepare ViQuAE Dataset')
+ex4 = Experiment('Prepare ViQuAE Dataset - Train')
 
 
 @ex4.config
 def config():
-    data_dir   = osp.join('data', 'viquae_images')
-    test_file  = 'test_query.txt'
-    index_file = 'test_gallery.txt'
-    gnd_file   = 'gnd_dev_viquae.pkl'
+    data_dir   = osp.join('data', 'viquae_for_rrt')
+    test_file  = 'train_query.txt'
+    index_file = 'train_gallery.txt'
+    gnd_file   = 'gnd_train.pkl'
     require_resolution = True
 
 
@@ -249,8 +249,68 @@ def generate_viquae(data_dir, test_file, index_file, gnd_file, require_resolutio
     gnd = pickle_load(gnd_file)
 
     if require_resolution:
-        test  = extract_resolution(data_dir, test)
-        index = extract_resolution(data_dir, index)
+        test  = extract_resolution(data_dir, test, split_char=';;')
+        index = extract_resolution(data_dir, index, split_char=';;')
+
+    with open(test_file, 'w') as f:
+        f.write('\n'.join(test))
+    with open(index_file, 'w') as f:
+        f.write('\n'.join(index))
+
+
+ex5 = Experiment('Prepare ViQuAE Dataset - Validation')
+
+
+@ex5.config
+def config():
+    data_dir = osp.join('data', 'viquae_for_rrt')
+    test_file = 'dev_query.txt'
+    index_file = 'dev_gallery.txt'
+    gnd_file = 'gnd_dev.pkl'
+    require_resolution = True
+
+
+@ex5.main
+def generate_viquae(data_dir, test_file, index_file, gnd_file, require_resolution):
+    test_file  = osp.join(data_dir, test_file)
+    index_file = osp.join(data_dir, index_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    test, index = load_viquae_dataset(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        test  = extract_resolution(data_dir, test, split_char=';;')
+        index = extract_resolution(data_dir, index, split_char=';;')
+
+    with open(test_file, 'w') as f:
+        f.write('\n'.join(test))
+    with open(index_file, 'w') as f:
+        f.write('\n'.join(index))
+
+
+ex6 = Experiment('Prepare ViQuAE Dataset - Test')
+
+
+@ex6.config
+def config():
+    data_dir   = osp.join('data', 'viquae_for_rrt')
+    test_file  = 'test_query.txt'
+    index_file = 'test_gallery.txt'
+    gnd_file   = 'gnd_test.pkl'
+    require_resolution = True
+
+
+@ex6.main
+def generate_viquae(data_dir, test_file, index_file, gnd_file, require_resolution):
+    test_file  = osp.join(data_dir, test_file)
+    index_file = osp.join(data_dir, index_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    test, index = load_viquae_dataset(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        test  = extract_resolution(data_dir, test, split_char=';;')
+        index = extract_resolution(data_dir, index, split_char=';;')
 
     with open(test_file, 'w') as f:
         f.write('\n'.join(test))
@@ -264,3 +324,5 @@ if __name__ == '__main__':
     # ex2.run()
     # ex3.run()
     ex4.run()
+    ex5.run()
+    ex6.run()
