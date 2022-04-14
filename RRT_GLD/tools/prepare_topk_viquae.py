@@ -15,7 +15,7 @@ from utils.revisited import compute_metrics
 from utils.data.delf import datum_io
 
 
-ex = sacred.Experiment('Prepare Top-K (VIQUAE)')
+ex = sacred.Experiment('Prepare Top-K (VIQUAE FOR RTT)')
 # Filter backspaces and linefeeds
 SETTINGS.CAPTURE_MODE = 'sys'
 ex.captured_out_filter = apply_backspaces_and_linefeeds
@@ -23,9 +23,11 @@ ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 @ex.config
 def config():
-    dataset_name = 'viquae_images'
+    dataset_name = 'viquae_for_rrt'
     data_dir = osp.join('data', dataset_name)
     feature_name = 'r50_gldv1'
+    set_name = 'test'
+    gnd_name = 'gnd_test.pkl'
 
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
@@ -34,10 +36,10 @@ def config():
     
 
 @ex.automain
-def main(data_dir, feature_name, use_aqe, aqe_params, save_nn_inds):
-    with open(osp.join(data_dir, 'test_query.txt')) as fid:
+def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_nn_inds):
+    with open(osp.join(data_dir, set_name+'_query.txt')) as fid:
         query_lines   = fid.read().splitlines()
-    with open(osp.join(data_dir, 'test_gallery.txt')) as fid:
+    with open(osp.join(data_dir, set_name+'_gallery.txt')) as fid:
         gallery_lines = fid.read().splitlines()
 
     query_feats = []
@@ -49,11 +51,14 @@ def main(data_dir, feature_name, use_aqe, aqe_params, save_nn_inds):
     query_feats = np.stack(query_feats, axis=0)
     query_feats = query_feats / LA.norm(query_feats, axis=-1)[:, None]
 
-    index_feats = []
-    for i in tqdm(range(len(gallery_lines))):
-        name = osp.splitext(osp.basename(gallery_lines[i].split(';;')[0]))[0]
-        path = osp.join(data_dir, 'delg_' + feature_name, name + '.delg_global')
-        index_feats.append(datum_io.ReadFromFile(path))
+    selection_lines = np.genfromtxt(osp.join(data_dir, set_name+'_selection_imgs.txt'), dtype='str')
+    selection_index_feats = []
+    for i in tqdm(range(len(selection_lines))):
+        index_feats = []
+        for name in selection_lines[i]:
+            path = osp.join(data_dir, 'delg_' + feature_name, name + '.delg_global')
+            index_feats.append(datum_io.ReadFromFile(path))
+        selection_index_feats.append(datum_io.ReadFromFile(path))
 
     index_feats = np.stack(index_feats, axis=0)
     index_feats = index_feats / LA.norm(index_feats, axis=-1)[:, None]
