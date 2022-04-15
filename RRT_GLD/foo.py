@@ -3001,7 +3001,7 @@ if resume is not None:
    checkpoint = torch.load(resume, map_location=torch.device('cpu'))
    model.load_state_dict(checkpoint['state'], strict=True)
   47: model.to(device)
-  48: model.eval()
+  48:  model.eval()
   49: loaders.query.dataset.desc_name
   50: loaders.query.dataset.data_dir
   51: nn_inds_path = osp.join(loaders.query.dataset.data_dir, 'nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
