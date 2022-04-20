@@ -48,6 +48,9 @@ class FeatureDataset(Dataset):
         global_desc = datum_io.ReadFromFile(global_path)
         locations, scales, desc, attention, _ = feature_io.ReadFromFile(local_path)
 
+        if locations.shape[0] == 0:
+            locations, scales, desc, attention = np.zeros((612,2)), 0.5 * np.ones((612,)),0.5 * np.ones((612,128)), np.ones((612,))
+    
         local_mask = torch.ones(self.max_sequence_len, dtype=torch.bool)
         local_desc = np.zeros((self.max_sequence_len, 128), dtype=np.float32)
         scale_inds = torch.zeros(self.max_sequence_len).long()
