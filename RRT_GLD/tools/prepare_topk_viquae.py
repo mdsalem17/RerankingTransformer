@@ -27,7 +27,7 @@ def config():
     data_dir = osp.join('data', dataset_name)
     feature_name = 'r50_gldv1'
     set_name = 'test'
-    gnd_name = 'gnd_test.pkl'
+    gnd_name = 'gnd_' + set_name + '.pkl'
 
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
@@ -41,6 +41,8 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
         query_lines   = fid.read().splitlines()
     with open(osp.join(data_dir, set_name+'_gallery.txt')) as fid:
         gallery_lines = fid.read().splitlines()
+    with open(osp.join(data_dir, set_name+'_selection.txt')) as fid:
+        selection_lines = fid.read().splitlines()
 
     query_feats = []
     for i in tqdm(range(len(query_lines))):
@@ -51,19 +53,32 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
     query_feats = np.stack(query_feats, axis=0)
     query_feats = query_feats / LA.norm(query_feats, axis=-1)[:, None]
 
-    selection_lines = np.genfromtxt(osp.join(data_dir, set_name+'_selection_imgs.txt'), dtype='str')
+    # selection_lines = np.genfromtxt(osp.join(data_dir, set_name+'_selection_imgs.txt'), dtype='str')
+    # selection_index_feats = []
+    # for i in tqdm(range(len(selection_lines))):
+    #    index_feats = []
+    #    for name in selection_lines[i]:
+    #        path = osp.join(data_dir, 'delg_' + feature_name, name + '.delg_global')
+    #        index_feats.append(datum_io.ReadFromFile(path))
+    #    selection_index_feats.append(datum_io.ReadFromFile(path))
+
     selection_index_feats = []
     for i in tqdm(range(len(selection_lines))):
-        index_feats = []
-        for name in selection_lines[i]:
-            path = osp.join(data_dir, 'delg_' + feature_name, name + '.delg_global')
-            index_feats.append(datum_io.ReadFromFile(path))
+        name = osp.splitext(osp.basename(selection_lines[i].split(';;')[0]))[0]
+        path = osp.join(data_dir, 'delg_'+feature_name, name+'.delg_global')
         selection_index_feats.append(datum_io.ReadFromFile(path))
+        
+    selection_index_feats = np.stack(selection_index_feats, axis=0)
+    selection_index_feats = selection_index_feats/LA.norm(selection_index_feats, axis=-1)[:,None]
+    selection_index_feats = selection_index_feats.reshape(query_feats.shape[0], 100, query_feats.shape[1])
+    
+    sims = []
+    for i in range(len(selection_index_feats)):
+        index_feats = np.stack(selection_index_feats[i], axis=0)
+        #index_feats = index_feats / LA.norm(index_feats, axis=-1)[:, None]
+        sims.append(np.matmul(query_feats[i], index_feats.T))
 
-    index_feats = np.stack(index_feats, axis=0)
-    index_feats = index_feats / LA.norm(index_feats, axis=-1)[:, None]
-
-    sims = np.matmul(query_feats, index_feats.T)
+    sims = np.stack(sims, axis=0)
 
     if use_aqe:
         alpha = aqe_params['alpha']
@@ -108,10 +123,13 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
             nn_dists[i, j] = sims[i, nn_inds[i, j]]
 
     if save_nn_inds:
-        output_path = osp.join(data_dir, 'nn_inds_%s.pkl' % feature_name)
+        output_path = osp.join(data_dir, set_name + '_nn_inds_%s.pkl' % feature_name)
         pickle_save(output_path, nn_inds)
 
     # nn_inds = np.concatenate(nn_inds, 0)
     # print(nn_inds.shape)
     # output_path = osp.join(data_dir, 'nn_inds_%s.pkl'%feature_name)
     # pickle_save(output_path, nn_inds)
+    
+    gnd_data = pickle_load(osp.join(data_dir, gnd_name))
+    compute_metrics('viquae', nn_inds.T, gnd_data['gnd'], kappas=[1,5,10])

@@ -15,7 +15,7 @@ from models.ingredient import model_ingredient, get_model
 from utils import pickle_load
 from utils.data.dataset_ingredient import data_ingredient, get_loaders
 # from utils.training import evaluate_time as evaluate
-from utils.training import evaluate
+from utils.training import evaluate_viquae
 
 ex = sacred.Experiment('RRT Evaluation', ingredients=[data_ingredient, model_ingredient])
 # Filter backspaces and linefeeds
@@ -56,10 +56,10 @@ def main(cpu, cudnn_flag, visdom_port, visdom_freq, temp_dir, seed, resume):
     # model = nn.DataParallel(model)
     model.eval()
     
-    nn_inds_path = osp.join(loaders.query.dataset.data_dir, 'nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
+    nn_inds_path = osp.join(loaders.query.dataset.data_dir, loaders.set_name + '_nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
     cache_nn_inds = torch.from_numpy(pickle_load(nn_inds_path)).long()
     # setup partial function to simplify call
-    eval_function = partial(evaluate, model=model, 
+    eval_function = partial(evaluate_viquae, model=model, 
         cache_nn_inds=cache_nn_inds,
         recall=recall_ks, query_loader=loaders.query, gallery_loader=loaders.gallery)
 

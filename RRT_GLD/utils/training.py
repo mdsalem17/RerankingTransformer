@@ -79,6 +79,61 @@ def train_one_epoch(
             ex.log_scalar('train.acc', acc, step=step)
 
 
+def evaluate_viquae(
+        model: nn.Module,
+        cache_nn_inds: torch.Tensor,
+        query_loader: DataLoader,
+        gallery_loader: DataLoader,
+        recall: List[int]):
+    model.eval()
+    device = next(model.parameters()).device
+    to_device = lambda x: x.to(device, non_blocking=True)
+
+    query_global, query_local, query_mask, query_scales, query_positions, query_names = [], [], [], [], [], []
+    gallery_global, gallery_local, gallery_mask, gallery_scales, gallery_positions, gallery_names = [], [], [], [], [], []
+
+    with torch.no_grad():
+        for entry in tqdm(query_loader, desc='Extracting query features', leave=False, ncols=80):
+            q_global, q_local, q_mask, q_scales, q_positions, _, q_names = entry
+            query_global.append(q_global.cpu())
+            query_local.append(q_local.cpu())
+            query_mask.append(q_mask.cpu())
+            query_scales.append(q_scales.cpu())
+            query_positions.append(q_positions.cpu())
+            query_names.extend(list(q_names))
+
+        query_global    = torch.cat(query_global, 0)
+        query_local     = torch.cat(query_local, 0)
+        query_mask      = torch.cat(query_mask, 0)
+        query_scales    = torch.cat(query_scales, 0)
+        query_positions = torch.cat(query_positions, 0)
+
+        for entry in tqdm(gallery_loader, desc='Extracting gallery features', leave=False, ncols=80):
+            g_global, g_local, g_mask, g_scales, g_positions, _, g_names = entry
+            gallery_global.append(g_global.cpu())
+            gallery_local.append(g_local.cpu())
+            gallery_mask.append(g_mask.cpu())
+            gallery_scales.append(g_scales.cpu())
+            gallery_positions.append(g_positions.cpu())
+            gallery_names.extend(list(g_names))
+            
+        gallery_global    = torch.cat(gallery_global, 0)
+        gallery_local     = torch.cat(gallery_local, 0)
+        gallery_mask      = torch.cat(gallery_mask, 0)
+        gallery_scales    = torch.cat(gallery_scales, 0)
+        gallery_positions = torch.cat(gallery_positions, 0)
+
+        torch.cuda.empty_cache()
+        evaluate_function = partial(mean_average_precision_viquae_rerank, model=model, cache_nn_inds=cache_nn_inds,
+            query_global=query_global, query_local=query_local, query_mask=query_mask, query_scales=query_scales, query_positions=query_positions, 
+            gallery_global=gallery_global, gallery_local=gallery_local, gallery_mask=gallery_mask, gallery_scales=gallery_scales, gallery_positions=gallery_positions, 
+            ks=recall, 
+            gnd=query_loader.dataset.gnd_data,
+        )
+        metrics = evaluate_function()
+    return metrics 
+
+
 def evaluate(
         model: nn.Module,
         cache_nn_inds: torch.Tensor,

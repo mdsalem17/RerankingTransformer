@@ -16,6 +16,7 @@ data_ingredient = Ingredient('dataset')
 @data_ingredient.config
 def config():
     name = None
+    set_name = ''
     desc_name = None
     train_data_dir = None
     test_data_dir  = None
@@ -26,6 +27,7 @@ def config():
     batch_size      = 36
     test_batch_size = 36
     max_sequence_len = 500
+    split_char  = ','
     sampler = 'random'
 
     num_workers = 8  # number of workers used ot load the data
@@ -36,6 +38,48 @@ def config():
     num_candidates = 100
 
 
+@data_ingredient.named_config
+def viquae_train_r50_gldv1():
+    name = 'viquae_train_r50_gldv1'
+    set_name = 'train'
+    train_txt = 'train_query.txt'
+    test_txt = ('train_query.txt', 'train_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_train.pkl'
+    desc_name = 'r50_gldv1'
+    split_char  = ';;'
+    sampler = 'random'
+
+@data_ingredient.named_config
+def viquae_dev_r50_gldv1():
+    name = 'viquae_dev_r50_gldv1'
+    set_name = 'dev'
+    train_txt = 'dev_query.txt'
+    test_txt = ('dev_query.txt', 'dev_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_dev.pkl'
+    desc_name = 'r50_gldv1'
+    split_char  = ';;'
+    sampler = 'random'
+    
+@data_ingredient.named_config
+def viquae_test_r50_gldv1():
+    name = 'viquae_test_r50_gldv1'
+    set_name = 'test'
+    train_txt = 'test_query.txt'
+    test_txt = ('test_query.txt', 'test_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_test.pkl'
+    desc_name = 'r50_gldv1'
+    split_char  = ';;'
+    sampler = 'random'
+
+################################################################################################################
+    
+    
 @data_ingredient.named_config
 def roxford_r50_gldv1():
     name = 'roxford_r50_gldv1'
@@ -191,6 +235,7 @@ class MetricLoaders(NamedTuple):
     num_classes: int
     query: DataLoader
     query_train: DataLoader
+    set_name: str = ''
     gallery: Optional[DataLoader] = None
 
 
@@ -198,18 +243,18 @@ class MetricLoaders(NamedTuple):
 def get_sets(desc_name, 
         train_data_dir, test_data_dir, 
         train_txt, test_txt, test_gnd_file, 
-        max_sequence_len):
+        max_sequence_len, split_char):
     ####################################################################################################################################
     train_lines     = read_file(osp.join(train_data_dir, train_txt))
-    train_samples   = [(line.split(',')[0], int(line.split(',')[1]), int(line.split(',')[2]), int(line.split(',')[3])) for line in train_lines]
+    train_samples   = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in train_lines]
     train_set       = FeatureDataset(train_data_dir, train_samples, desc_name, max_sequence_len)
     query_train_set = FeatureDataset(train_data_dir, train_samples, desc_name, max_sequence_len)
     ####################################################################################################################################
     test_gnd_data = None if test_gnd_file is None else pickle_load(osp.join(test_data_dir, test_gnd_file))
     query_lines   = read_file(osp.join(test_data_dir, test_txt[0]))
     gallery_lines = read_file(osp.join(test_data_dir, test_txt[1]))
-    query_samples   = [(line.split(',')[0], int(line.split(',')[1]), int(line.split(',')[2]), int(line.split(',')[3])) for line in query_lines]
-    gallery_samples = [(line.split(',')[0], int(line.split(',')[1]), int(line.split(',')[2]), int(line.split(',')[3])) for line in gallery_lines]
+    query_samples   = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in query_lines]
+    gallery_samples = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in gallery_lines]
     gallery_set = FeatureDataset(test_data_dir, gallery_samples, desc_name, max_sequence_len)
     query_set   = FeatureDataset(test_data_dir, query_samples,   desc_name, max_sequence_len, gnd_data=test_gnd_data)
         
@@ -220,7 +265,7 @@ def get_sets(desc_name,
 def get_loaders(desc_name, train_data_dir, 
     batch_size, test_batch_size, 
     num_workers, pin_memory, 
-    sampler, recalls,
+    sampler, recalls, set_name,
     num_candidates=100):
 
     (train_set, query_train_set), (query_set, gallery_set) = get_sets()
@@ -228,7 +273,10 @@ def get_loaders(desc_name, train_data_dir,
     if sampler == 'random':
         train_sampler = BatchSampler(RandomSampler(train_set), batch_size=batch_size, drop_last=False)
     elif sampler == 'triplet':
-        train_nn_inds = osp.join(train_data_dir, 'nn_inds_%s.pkl'%desc_name)
+        s_name = set_name
+        if s_name != '':
+            s_name = set_name + '_'
+        train_nn_inds = osp.join(train_data_dir, s_name+'nn_inds_%s.pkl'%desc_name)
         train_sampler = TripletSampler(train_set.targets, batch_size, train_nn_inds, num_candidates)
     else:
         raise ValueError('Invalid choice of sampler ({}).'.format(sampler))
@@ -238,4 +286,4 @@ def get_loaders(desc_name, train_data_dir,
     query_loader   = DataLoader(query_set, batch_size=test_batch_size, num_workers=num_workers, pin_memory=pin_memory)
     gallery_loader = DataLoader(gallery_set, batch_size=test_batch_size, num_workers=num_workers, pin_memory=pin_memory)
 
-    return MetricLoaders(train=train_loader, query_train=query_train_loader, query=query_loader, gallery=gallery_loader, num_classes=len(train_set.categories)), recalls
+    return MetricLoaders(train=train_loader, query_train=query_train_loader, query=query_loader, gallery=gallery_loader, num_classes=len(train_set.categories),set_name=set_name), recalls

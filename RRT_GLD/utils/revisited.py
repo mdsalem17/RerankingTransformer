@@ -1,5 +1,5 @@
 import numpy as np
-
+from ranx import Qrels, Run, evaluate
 
 def compute_ap(ranks, nres):
     """
@@ -129,7 +129,7 @@ def compute_metrics(dataset, ranks, gnd, kappas=[1, 5, 10]):
         out = {'map': np.around(map*100, decimals=3)}
         print('>> {}: mAP {:.2f}'.format(dataset, out['map']))
 
-    # new evaluation protocol
+    # new evaluation protocol for revisited dataset
     elif dataset.startswith('revisited'):
         
         gnd_t = []
@@ -178,5 +178,26 @@ def compute_metrics(dataset, ranks, gnd, kappas=[1, 5, 10]):
 
         print('>> {}: mAP E: {}, M: {}, H: {}'.format(dataset, out['E_map'], out['M_map'], out['H_map']))
         print('>> {}: mP@k{} E: {}, M: {}, H: {}'.format(dataset, kappas, out['E_mp'], out['M_mp'], out['H_mp']))
+    
+    # new evaluation protocol for revisited dataset
+    elif dataset.startswith('viquae'):
 
+        qrels_dict = {}
+        run_dict = {}
+        for i in range(ranks.T.shape[0]):
+            q_str = 'q_' + str(i)
+
+            qrels_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in gnd[i]['hard']])
+            run_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in ranks[:,i]])
+
+        qrels = Qrels(qrels_dict)
+        run = Run(run_dict)
+
+        out = evaluate(qrels, run, ["map", "map@"+str(kappas[0]), "map@"+str(kappas[1]), "map@"+str(kappas[2]),
+                          "mrr", "mrr@"+str(kappas[0]), "mrr@"+str(kappas[1]), "mrr@"+str(kappas[2]),
+                          "precision", "precision@"+str(kappas[0]), "precision@"+str(kappas[1]), "precision@"+str(kappas[2])])
+        for key, value in out.items():
+            out[key] = np.around(value*100, decimals=2)
+        print(out)
+        
     return out

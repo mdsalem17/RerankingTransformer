@@ -54,6 +54,112 @@ class AverageMeter:
 
 
 @torch.no_grad()
+def mean_average_precision_viquae_rerank(
+    model: nn.Module,
+    cache_nn_inds: torch.Tensor,
+    query_global: torch.Tensor, query_local: torch.Tensor, query_mask: torch.Tensor, query_scales: torch.Tensor, query_positions: torch.Tensor,
+    gallery_global: torch.Tensor, gallery_local: torch.Tensor, gallery_mask: torch.Tensor, gallery_scales: torch.Tensor, gallery_positions: torch.Tensor,
+    ks: List[int],
+    gnd) -> Dict[str, float]:
+
+    device = next(model.parameters()).device
+    query_global    = query_global.to(device)
+    query_local     = query_local.to(device)
+    query_mask      = query_mask.to(device)
+    query_scales    = query_scales.to(device)
+    query_positions = query_positions.to(device)
+
+    num_samples, top_k = cache_nn_inds.size()
+    top_k = min(100, top_k)
+    
+    print("top_k: ", top_k)    
+    print("gallery_global size: ", gallery_global.shape)
+    print("gallery_local size: ", gallery_local.shape)
+    print("gallery_mask size: ", gallery_mask.shape)
+    print("gallery_scales size: ", gallery_scales.shape)
+    print("gallery_positions size: ", gallery_positions.shape)
+    
+    gallery_global = gallery_global
+    gallery_local = gallery_local
+    gallery_mask = gallery_mask
+    gallery_scales = gallery_scales
+    gallery_positions = gallery_positions
+
+
+    ########################################################################################
+    ## Medium
+    medium_nn_inds = deepcopy(cache_nn_inds.cpu().data.numpy())
+
+    # Exclude the junk images as in DELG (https://github.com/tensorflow/models/blob/44cad43aadff9dd12b00d4526830f7ea0796c047/research/delf/delf/python/detect_to_retrieve/image_reranking.py#L190)
+    for i in range(num_samples):
+        junk_ids = gnd['gnd'][i]['junk']
+        all_ids = medium_nn_inds[i]
+        pos = np.in1d(all_ids, junk_ids)
+        neg = np.array([not x for x in pos])
+        new_ids = np.concatenate([np.arange(len(all_ids))[neg], np.arange(len(all_ids))[pos]])
+        new_ids = all_ids[new_ids]
+        medium_nn_inds[i] = new_ids
+    medium_nn_inds = torch.from_numpy(medium_nn_inds)
+    
+    scores = []
+    for i in tqdm(range(top_k)):
+        nnids = medium_nn_inds[:, i]
+        index_global    = []
+        for idx in range(nnids.size(dim=0)):
+            index_global.append(gallery_global[idx, nnids[idx]])
+        index_global = np.stack(index_global, axis=0)
+        index_global = torch.from_numpy(index_global)
+        index_local     = []
+        for idx in range(nnids.size(dim=0)):
+            index_local.append(gallery_local[idx, nnids[idx]])
+        index_local = np.stack(index_local, axis=0)
+        index_local = torch.from_numpy(index_local)
+        index_mask     = []
+        for idx in range(nnids.size(dim=0)):
+            index_mask.append(gallery_mask[idx, nnids[idx]])
+        index_mask = np.stack(index_mask, axis=0)
+        index_mask = torch.from_numpy(index_mask)
+        index_scales     = []
+        for idx in range(nnids.size(dim=0)):
+            index_scales.append(gallery_scales[idx, nnids[idx]])
+        index_scales = np.stack(index_scales, axis=0)
+        index_scales = torch.from_numpy(index_scales)
+        index_positions     = []
+        for idx in range(nnids.size(dim=0)):
+            index_positions.append(gallery_positions[idx, nnids[idx]])
+        index_positions = np.stack(index_positions, axis=0)
+        index_positions = torch.from_numpy(index_positions)
+        
+        print("index_global size: ", index_global.shape)
+        print("index_local size: ", index_local.shape)
+        print("index_mask size: ", index_mask.shape)
+        print("index_scales size: ", index_scales.shape)
+        print("index_positions size: ", index_positions.shape)
+
+        current_scores = model(
+            query_global, query_local, query_mask, query_scales, query_positions,
+            index_global.to(device),
+            index_local.to(device),
+            index_mask.to(device),
+            index_scales.to(device),
+            index_positions.to(device))
+        scores.append(current_scores.cpu().data)
+    
+    
+    scores = torch.stack(scores, -1) # 70 x 100
+    closest_dists, indices = torch.sort(scores, dim=-1, descending=True)
+    closest_indices = torch.gather(medium_nn_inds, -1, indices)
+    ranks = deepcopy(medium_nn_inds)
+    ranks[:, :top_k] = deepcopy(closest_indices)
+    ranks = ranks.cpu().data.numpy().T
+    # pickle_save('medium_nn_inds.pkl', ranks.T)
+    out = compute_metrics('viquae', ranks, gnd['gnd'], kappas=ks)
+
+    ########################################################################################  
+    
+    return out
+
+@torch.no_grad()
 def mean_average_precision_revisited_rerank(
     model: nn.Module,
     cache_nn_inds: torch.Tensor,
@@ -71,6 +177,13 @@ def mean_average_precision_revisited_rerank(
 
     num_samples, top_k = cache_nn_inds.size()
     top_k = min(100, top_k)
+    
+    print("top_k: ", top_k)    
+    print("gallery_global size: ", gallery_global.shape)
+    print("gallery_local size: ", gallery_local.shape)
+    print("gallery_mask size: ", gallery_mask.shape)
+    print("gallery_scales size: ", gallery_scales.shape)
+    print("gallery_positions size: ", gallery_positions.shape)
 
     ########################################################################################
     ## Medium
@@ -95,6 +208,12 @@ def mean_average_precision_revisited_rerank(
         index_mask      = gallery_mask[nnids]
         index_scales    = gallery_scales[nnids]
         index_positions = gallery_positions[nnids]
+        
+        print("index_global size: ", index_global.shape)
+        print("index_local size: ", index_local.shape)
+        print("index_mask size: ", index_mask.shape)
+        print("index_scales size: ", index_scales.shape)
+        print("index_positions size: ", index_positions.shape)
         current_scores = model(
             query_global, query_local, query_mask, query_scales, query_positions,
             index_global.to(device),
@@ -104,6 +223,7 @@ def mean_average_precision_revisited_rerank(
             index_positions.to(device))
         scores.append(current_scores.cpu().data)
     scores = torch.stack(scores, -1) # 70 x 100
+    print("scores size: ", scores.shape)
     closest_dists, indices = torch.sort(scores, dim=-1, descending=True)
     closest_indices = torch.gather(medium_nn_inds, -1, indices)
     ranks = deepcopy(medium_nn_inds)
@@ -114,6 +234,7 @@ def mean_average_precision_revisited_rerank(
 
     ########################################################################################
     ## Hard
+    """
     hard_nn_inds = deepcopy(cache_nn_inds.cpu().data.numpy())
     # Exclude the junk images as in DELG (https://github.com/tensorflow/models/blob/44cad43aadff9dd12b00d4526830f7ea0796c047/research/delf/delf/python/detect_to_retrieve/image_reranking.py#L190)
     for i in range(num_samples):
@@ -155,12 +276,13 @@ def mean_average_precision_revisited_rerank(
     # pickle_save('hard_nn_inds.pkl', ranks.T)
     hard = compute_metrics('revisited', ranks, gnd['gnd'], kappas=ks)
 
+    """
     ########################################################################################  
     out = {
         'M_map': float(medium['M_map']), 
-        'H_map': float(hard['H_map']),
+        #'H_map': float(hard['H_map']),
         'M_mp':  medium['M_mp'].tolist(),
-        'H_mp': hard['H_mp'].tolist(),
+        #'H_mp': hard['H_mp'].tolist(),
     }
     # json_save('eval_revisited.json', out)
     return out
