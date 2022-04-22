@@ -11,7 +11,7 @@ from .revisited import compute_metrics
 from .data.utils import json_save, pickle_save
 
 import time
-
+import gc
 
 class AverageMeter:
     """Computes and stores the average and current value on device"""
@@ -72,18 +72,11 @@ def mean_average_precision_viquae_rerank(
     num_samples, top_k = cache_nn_inds.size()
     top_k = min(100, top_k)
     
-    print("top_k: ", top_k)    
-    print("gallery_global size: ", gallery_global.shape)
-    print("gallery_local size: ", gallery_local.shape)
-    print("gallery_mask size: ", gallery_mask.shape)
-    print("gallery_scales size: ", gallery_scales.shape)
-    print("gallery_positions size: ", gallery_positions.shape)
-    
-    gallery_global = gallery_global
-    gallery_local = gallery_local
-    gallery_mask = gallery_mask
-    gallery_scales = gallery_scales
-    gallery_positions = gallery_positions
+    gallery_global = gallery_global.reshape(query_global.size(dim=0), 100, query_global.size(dim=1))
+    gallery_local = gallery_local.reshape(query_local.size(dim=0), 100, query_local.size(dim=1), query_local.size(dim=2))
+    gallery_mask = gallery_mask.reshape(query_mask.size(dim=0), 100, query_mask.size(dim=1))
+    gallery_scales = gallery_scales.reshape(query_scales.size(dim=0), 100, query_scales.size(dim=1))
+    gallery_positions = gallery_positions.reshape(query_positions.size(dim=0), 100, query_positions.size(dim=1), query_positions.size(dim=2))
 
 
     ########################################################################################
@@ -104,49 +97,51 @@ def mean_average_precision_viquae_rerank(
     scores = []
     for i in tqdm(range(top_k)):
         nnids = medium_nn_inds[:, i]
-        index_global    = []
-        for idx in range(nnids.size(dim=0)):
-            index_global.append(gallery_global[idx, nnids[idx]])
-        index_global = np.stack(index_global, axis=0)
-        index_global = torch.from_numpy(index_global)
-        index_local     = []
-        for idx in range(nnids.size(dim=0)):
-            index_local.append(gallery_local[idx, nnids[idx]])
-        index_local = np.stack(index_local, axis=0)
-        index_local = torch.from_numpy(index_local)
-        index_mask     = []
-        for idx in range(nnids.size(dim=0)):
-            index_mask.append(gallery_mask[idx, nnids[idx]])
-        index_mask = np.stack(index_mask, axis=0)
-        index_mask = torch.from_numpy(index_mask)
-        index_scales     = []
-        for idx in range(nnids.size(dim=0)):
-            index_scales.append(gallery_scales[idx, nnids[idx]])
-        index_scales = np.stack(index_scales, axis=0)
-        index_scales = torch.from_numpy(index_scales)
+        index_global        = []
+        index_local         = []
+        index_mask          = []
+        index_scales        = []
         index_positions     = []
-        for idx in range(nnids.size(dim=0)):
-            index_positions.append(gallery_positions[idx, nnids[idx]])
-        index_positions = np.stack(index_positions, axis=0)
-        index_positions = torch.from_numpy(index_positions)
-        
-        print("index_global size: ", index_global.shape)
-        print("index_local size: ", index_local.shape)
-        print("index_mask size: ", index_mask.shape)
-        print("index_scales size: ", index_scales.shape)
-        print("index_positions size: ", index_positions.shape)
+        for iterator in range(nnids.size(dim=0)):
+            index_global.append(gallery_global[iterator, nnids[iterator]])
+            index_local.append(gallery_local[iterator, nnids[iterator]])
+            index_mask.append(gallery_mask[iterator, nnids[iterator]])
+            index_scales.append(gallery_scales[iterator, nnids[iterator]])
+            index_positions.append(gallery_positions[iterator, nnids[iterator]])
 
+        torch.cuda.empty_cache()
+        index_global = torch.from_numpy(np.stack(index_global, axis=0))
+        index_global = index_global.to(device)
+
+        torch.cuda.empty_cache()
+        index_local = torch.from_numpy(np.stack(index_local, axis=0))
+        index_local = index_local.to(device)
+        
+        torch.cuda.empty_cache()
+        index_mask = torch.from_numpy(np.stack(index_mask, axis=0))
+        index_mask = index_mask.to(device)
+
+        torch.cuda.empty_cache()
+        index_scales = torch.from_numpy(np.stack(index_scales, axis=0))
+        index_scales = index_scales.to(device)
+
+        torch.cuda.empty_cache()
+        index_positions = torch.from_numpy(np.stack(index_positions, axis=0))
+        index_positions = index_positions.to(device)
+        
         current_scores = model(
             query_global, query_local, query_mask, query_scales, query_positions,
-            index_global.to(device),
-            index_local.to(device),
-            index_mask.to(device),
-            index_scales.to(device),
-            index_positions.to(device))
+            index_global,
+            index_local,
+            index_mask,
+            index_scales,
+            index_positions)
+        
+        torch.cuda.empty_cache()
         scores.append(current_scores.cpu().data)
     
     
-    scores = torch.stack(scores, -1) # 70 x 100
+    scores = torch.stack(scores, -1) # nb_queries x 100
     closest_dists, indices = torch.sort(scores, dim=-1, descending=True)
     closest_indices = torch.gather(medium_nn_inds, -1, indices)
     ranks = deepcopy(medium_nn_inds)

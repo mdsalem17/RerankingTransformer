@@ -30,12 +30,26 @@ def config():
     split_char  = ','
     sampler = 'random'
 
-    num_workers = 8  # number of workers used ot load the data
+    num_workers = 8  # number of workers used to load the data
     pin_memory  = True  # use the pin_memory option of DataLoader 
     recalls = [1, 5, 10]
     ###############################################
     ## Negative sampling
     num_candidates = 100
+
+
+@data_ingredient.named_config
+def viquae_tuto_r50_gldv1():
+    name = 'viquae_tuto_r50_gldv1'
+    set_name = 'tuto'
+    train_txt = 'tuto_query.txt'
+    test_txt = ('tuto_query.txt', 'tuto_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_tuto.pkl'
+    desc_name = 'r50_gldv1'
+    split_char  = ';;'
+    sampler = 'random'
 
 
 @data_ingredient.named_config

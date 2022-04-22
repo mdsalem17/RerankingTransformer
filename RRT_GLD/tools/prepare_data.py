@@ -338,12 +338,46 @@ def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, r
     with open(selection_file, 'w') as f:
         f.write('\n'.join(selection))
 
+ex7 = Experiment('Prepare ViQuAE Dataset - Tuto')
+
+@ex7.config
+def config():
+    data_dir   = osp.join('data', 'viquae_for_rrt')
+    test_file  = 'tuto_query.txt'
+    index_file = 'tuto_gallery.txt'
+    selection_file = 'tuto_selection.txt'
+    gnd_file   = 'gnd_tuto.pkl'
+    require_resolution = True
+
+
+@ex7.main
+def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, require_resolution):
+    test_file  = osp.join(data_dir, test_file)
+    index_file = osp.join(data_dir, index_file)
+    selection_file = osp.join(data_dir, selection_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    test, index, selection = load_viquae_dataset(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        test  = extract_resolution(data_dir, test, split_char=';;')
+        index = extract_resolution(data_dir, index, split_char=';;')
+        selection = extract_resolution(data_dir, selection, split_char=';;')
+
+    with open(test_file, 'w') as f:
+        f.write('\n'.join(test))
+    with open(index_file, 'w') as f:
+        f.write('\n'.join(index))
+    with open(selection_file, 'w') as f:
+        f.write('\n'.join(selection))
+
 
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     # ex1.run()
     # ex2.run()
     # ex3.run()
-    ex4.run()
-    ex5.run()
-    ex6.run()
+    # ex4.run()
+    # ex5.run()
+    # ex6.run()
+    ex7.run()
