@@ -24,8 +24,8 @@ def config():
     test_txt  = None
     test_gnd_file = None
     
-    batch_size      = 36
-    test_batch_size = 36
+    batch_size      = 32
+    test_batch_size = 32
     max_sequence_len = 500
     split_char  = ','
     sampler = 'random'
@@ -37,6 +37,8 @@ def config():
     ## Negative sampling
     num_candidates = 100
 
+################################################################################################################
+### GLDV1
 
 @data_ingredient.named_config
 def viquae_tuto_r50_gldv1():
@@ -91,8 +93,92 @@ def viquae_test_r50_gldv1():
     split_char  = ';;'
     sampler = 'random'
 
+
 ################################################################################################################
+### GLDV2
+
+@data_ingredient.named_config
+def viquae_tuto_r50_gldv2():
+    name = 'viquae_tuto_r50_gldv2'
+    set_name = 'tuto'
+    train_txt = 'tuto_query.txt'
+    test_txt = ('tuto_query.txt', 'tuto_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_tuto.pkl'
+    desc_name = 'r50_gldv2'
+    split_char  = ';;'
+    sampler = 'random'
+
+
+@data_ingredient.named_config
+def viquae_train_r50_gldv2():
+    name = 'viquae_train_r50_gldv2'
+    set_name = 'train'
+    train_txt = 'train_query.txt'
+    test_txt = ('train_query.txt', 'train_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_train.pkl'
+    desc_name = 'r50_gldv2'
+    split_char  = ';;'
+    sampler = 'random'
+
+@data_ingredient.named_config
+def viquae_dev_r50_gldv2():
+    name = 'viquae_dev_r50_gldv2'
+    set_name = 'dev'
+    train_txt = 'dev_query.txt'
+    test_txt = ('dev_query.txt', 'dev_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_dev.pkl'
+    desc_name = 'r50_gldv2'
+    split_char  = ';;'
+    sampler = 'random'
     
+@data_ingredient.named_config
+def viquae_test_r50_gldv2():
+    name = 'viquae_test_r50_gldv2'
+    set_name = 'test'
+    train_txt = 'test_query.txt'
+    test_txt = ('test_query.txt', 'test_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_test.pkl'
+    desc_name = 'r50_gldv2'
+    split_char  = ';;'
+    sampler = 'random'
+
+################################################################################################################
+### Training
+
+@data_ingredient.named_config
+def train_viquae_dev_r50_gldv1():
+    name = 'train_viquae_dev_r50_gldv1'
+    train_txt = 'train.txt'
+    test_txt = ('dev_query.txt', 'dev_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_dev.pkl'
+    desc_name = 'r50_gldv2'
+    sampler = 'triplet'
+
+
+
+@data_ingredient.named_config
+def train_viquae_dev_r50_gldv2():
+    name = 'train_viquae_dev_r50_gldv2'
+    train_txt = 'train.txt'
+    test_txt = ('dev_query.txt', 'dev_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_dev.pkl'
+    desc_name = 'r50_gldv2'
+    sampler = 'triplet'
+
+################################################################################################################
+### Revisited Oxford Resnet50
     
 @data_ingredient.named_config
 def roxford_r50_gldv1():
@@ -117,6 +203,8 @@ def roxford_r50_gldv2():
     desc_name = 'r50_gldv2'
     sampler = 'random'
 
+################################################################################################################
+### Revisited Paris Resnet50
 
 @data_ingredient.named_config
 def rparis_r50_gldv1():
@@ -141,6 +229,8 @@ def rparis_r50_gldv2():
     desc_name = 'r50_gldv2'
     sampler = 'random'
 
+################################################################################################################
+### Revisited Oxford Resnet101
 
 @data_ingredient.named_config
 def roxford_r101_gldv1():
@@ -165,6 +255,8 @@ def roxford_r101_gldv2():
     desc_name = 'r101_gldv2'
     sampler = 'random'
 
+################################################################################################################
+### Revisited Paris Resnet101
 
 @data_ingredient.named_config
 def rparis_r101_gldv1():
@@ -189,6 +281,9 @@ def rparis_r101_gldv2():
     desc_name = 'r101_gldv2'
     sampler = 'random'
 
+
+################################################################################################################
+### Training
 
 @data_ingredient.named_config
 def gldv2_roxford_r50_gldv1():
@@ -236,6 +331,8 @@ def gldv2_roxford_r101_gldv2():
     test_gnd_file = 'gnd_roxford5k.pkl'
     desc_name = 'r101_gldv2'
     sampler = 'triplet'
+
+################################################################################################################
 
 
 def read_file(filename):

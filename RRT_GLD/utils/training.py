@@ -101,6 +101,7 @@ def evaluate_viquae(
             query_scales.append(q_scales.cpu())
             query_positions.append(q_positions.cpu())
             query_names.extend(list(q_names))
+            torch.cuda.empty_cache()
 
         query_global    = torch.cat(query_global, 0)
         query_local     = torch.cat(query_local, 0)
@@ -116,6 +117,7 @@ def evaluate_viquae(
             gallery_scales.append(g_scales.cpu())
             gallery_positions.append(g_positions.cpu())
             gallery_names.extend(list(g_names))
+            torch.cuda.empty_cache()
             
         gallery_global    = torch.cat(gallery_global, 0)
         gallery_local     = torch.cat(gallery_local, 0)
