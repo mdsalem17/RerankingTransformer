@@ -112,7 +112,7 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_dir, seed, no_b
         model.load_state_dict(checkpoint['state'], strict=True)
     print('# of trainable parameters: ', num_of_trainable_params(model))
     class_loss = get_loss()
-    nn_inds_path = osp.join(loaders.query.dataset.data_dir, 'nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
+    nn_inds_path = osp.join(loaders.query.dataset.data_dir, loaders.set_name + '_nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
     cache_nn_inds = torch.from_numpy(pickle_load(nn_inds_path)).long()
 
     torch.manual_seed(seed+2)
