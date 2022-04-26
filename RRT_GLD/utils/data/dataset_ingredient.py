@@ -157,7 +157,7 @@ def viquae_test_r50_gldv2():
 def train_viquae_dev_r50_gldv1():
     name = 'train_viquae_dev_r50_gldv1'
     set_name = 'train'
-    train_txt = 'train_query.txt'
+    train_txt = 'train.txt'
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -171,7 +171,7 @@ def train_viquae_dev_r50_gldv1():
 def train_viquae_dev_r50_gldv2():
     name = 'train_viquae_dev_r50_gldv2'
     set_name = 'train'
-    train_txt = 'train_query.txt'
+    train_txt = 'train.txt'
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -191,6 +191,20 @@ def tuto_viquae_tuto_r50_gldv1():
     test_data_dir  = 'data/viquae_for_rrt'
     test_gnd_file = 'gnd_tuto.pkl'
     desc_name = 'r50_gldv1'
+    sampler = 'triplet'
+    split_char  = ';;'
+
+
+@data_ingredient.named_config
+def tuto_viquae_tuto_r50_gldv2():
+    name = 'tuto_viquae_tuto_r50_gldv2'
+    set_name = 'tuto'
+    train_txt = 'tuto_query.txt'
+    test_txt = ('tuto_query.txt', 'tuto_selection.txt')
+    train_data_dir = 'data/viquae_for_rrt'
+    test_data_dir  = 'data/viquae_for_rrt'
+    test_gnd_file = 'gnd_tuto.pkl'
+    desc_name = 'r50_gldv2'
     sampler = 'triplet'
     split_char  = ';;'
 

@@ -49,7 +49,7 @@ class FeatureDataset(Dataset):
         locations, scales, desc, attention, _ = feature_io.ReadFromFile(local_path)
 
         if locations.shape[0] == 0:
-            locations, scales, desc, attention = np.zeros((612,2)), 0.5 * np.ones((612,)),0.5 * np.ones((612,128)), np.ones((612,))
+            locations, scales, desc, attention = np.zeros((612,2)), np.zeros((612,)), np.zeros((612,128)), np.zeros((612,))
     
         local_mask = torch.ones(self.max_sequence_len, dtype=torch.bool)
         local_desc = np.zeros((self.max_sequence_len, 128), dtype=np.float32)

@@ -1,7 +1,9 @@
 import _init_paths
+import random
 import os
 import os.path as osp
 from glob import glob
+import numpy as np
 from PIL import Image
 from copy import deepcopy
 from sacred import Experiment
@@ -371,6 +373,86 @@ def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, r
     with open(selection_file, 'w') as f:
         f.write('\n'.join(selection))
 
+###########################################################################
+## Training on ViQuAE
+def load_viquae_rrt_training(data_dir, gnd_file):
+    prefix = 'jpg'
+    gnd = pickle_load(gnd_file)
+    query_names     = gnd['qimlist']
+    gallery_names   = gnd['imlist']
+    selection_gallery = gnd['simlist']
+    
+    random.seed(42)
+    s_cat_list = random.sample(range(len(gnd['qimlist']), 500000), len(gnd['qimlist'])*100)
+    
+    outs = []
+    q_categories = []
+    s_categories = []
+    for i in range(len(query_names)):
+        q_categories.append(i)
+        outs.append(';;'.join([osp.join(prefix, query_names[i]), str(i)]))
+        for j in range(100):
+            if j in gnd['gnd'][i]['hard']:
+                s_categories.append(i)
+                outs.append(';;'.join([osp.join(prefix, selection_gallery[i][j]), str(i)]))
+            else:
+                cat = s_cat_list.pop(0)
+                s_categories.append(cat)
+                outs.append(';;'.join([osp.join(prefix, selection_gallery[i][j]), str(cat)]))
+    
+    return outs, np.stack(q_categories, axis=0), np.stack(s_categories, axis=0)
+
+
+ex8 = Experiment('Prepare ViQuAE For Training RRT - Train')
+
+
+@ex8.config
+def config():
+    data_dir   = osp.join('data', 'viquae_for_rrt')
+    train_file  = 'train.txt'
+    gnd_file   = 'gnd_train.pkl'
+    require_resolution = True
+
+
+@ex8.main
+def generate_train_viquae(data_dir, train_file, gnd_file, require_resolution):
+    train_file  = osp.join(data_dir, train_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    train, _, _ = load_viquae_rrt_training(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        train  = extract_resolution(data_dir, train, split_char=';;')
+
+    with open(train_file, 'w') as f:
+        f.write('\n'.join(train))
+
+
+ex9 = Experiment('Prepare ViQuAE For Training RRT - Tuto')
+
+
+@ex9.config
+def config():
+    data_dir = osp.join('data', 'viquae_for_rrt')
+    train_file  = 'tuto.txt'
+    gnd_file   = 'gnd_tuto.pkl'
+    require_resolution = True
+
+
+@ex9.main
+def generate_train_viquae(data_dir, train_file, gnd_file, require_resolution):
+    train_file  = osp.join(data_dir, train_file)
+    gnd_file   = osp.join(data_dir, gnd_file)
+    train, _, _ = load_viquae_rrt_training(data_dir, gnd_file)
+    gnd = pickle_load(gnd_file)
+
+    if require_resolution:
+        train  = extract_resolution(data_dir, train, split_char=';;')
+
+    with open(train_file, 'w') as f:
+        f.write('\n'.join(train))
+
+
 
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
@@ -380,4 +462,6 @@ if __name__ == '__main__':
     # ex4.run()
     # ex5.run()
     # ex6.run()
-    ex7.run()
+    # ex7.run()
+    ex8.run()
+    ex9.run()

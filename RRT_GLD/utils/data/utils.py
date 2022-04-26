@@ -37,7 +37,10 @@ class TripletSampler():
         self.num_candidates = num_candidates
         self.cache_nn_inds  = pickle_load(nn_inds_path)
         self.labels = labels
-        assert (len(self.cache_nn_inds) == len(labels))
+        print('cache_nn_inds len: ', len(self.cache_nn_inds))
+        print('cache_nn_inds len: ', len(self.cache_nn_inds[0]))
+        print('labels len: ', len(labels))
+        #assert (len(self.cache_nn_inds) == len(labels))
         #############################################################################
         ## Collect valid tuples
         valids = np.zeros_like(labels)
