@@ -26,8 +26,9 @@ def config():
     dataset_name = 'viquae_for_rrt'
     data_dir = osp.join('data', dataset_name)
     feature_name = 'r50_gldv1'
-    set_name = 'test'
+    set_name = 'tuto'
     gnd_name = 'gnd_' + set_name + '.pkl'
+    #gnd_name = 'training_gnd_' + set_name + '.pkl'
 
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
@@ -37,11 +38,15 @@ def config():
 
 @ex.automain
 def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_nn_inds):
-    with open(osp.join(data_dir, set_name+'_query.txt')) as fid:
+    with open(osp.join(data_dir, 'training_query_'+set_name+'.txt')) as fid:
         query_lines   = fid.read().splitlines()
-    with open(osp.join(data_dir, set_name+'_gallery.txt')) as fid:
-        gallery_lines = fid.read().splitlines()
-    with open(osp.join(data_dir, set_name+'_selection.txt')) as fid:
+    #with open(osp.join(data_dir, set_name+'_query.txt')) as fid:
+    #    query_lines   = fid.read().splitlines()
+    #with open(osp.join(data_dir, set_name+'_gallery.txt')) as fid:
+    #    gallery_lines = fid.read().splitlines()
+    #with open(osp.join(data_dir, set_name+'_selection.txt')) as fid:
+    #    selection_lines = fid.read().splitlines()
+    with open(osp.join(data_dir, 'training_selection_'+set_name+'.txt')) as fid:
         selection_lines = fid.read().splitlines()
 
     query_feats = []
@@ -123,11 +128,11 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
             nn_dists[i, j] = sims[i, nn_inds[i, j]]
 
     if save_nn_inds:
-        output_path = osp.join(data_dir, set_name + '_nn_inds_%s.pkl' % feature_name)
+        output_path = osp.join(data_dir, 'training_'+set_name + '_nn_inds_%s.pkl' % feature_name)
         pickle_save(output_path, nn_inds)
 
     # nn_inds = np.concatenate(nn_inds, 0)
-    # print(nn_inds.shape)
+    print(nn_inds.shape)
     # output_path = osp.join(data_dir, 'nn_inds_%s.pkl'%feature_name)
     # pickle_save(output_path, nn_inds)
     

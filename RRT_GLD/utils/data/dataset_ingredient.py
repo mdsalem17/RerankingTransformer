@@ -3,6 +3,7 @@ from copy import deepcopy
 from sacred import Ingredient
 from typing import NamedTuple, Optional
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, BatchSampler
 
@@ -161,6 +162,7 @@ def train_viquae_dev_r50_gldv1():
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
+    train_gnd_file = 'training_gnd_train.pkl'
     test_gnd_file = 'gnd_dev.pkl'
     desc_name = 'r50_gldv1'
     sampler = 'triplet'
@@ -175,6 +177,7 @@ def train_viquae_dev_r50_gldv2():
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
+    train_gnd_file = 'training_gnd_train.pkl'
     test_gnd_file = 'gnd_dev.pkl'
     desc_name = 'r50_gldv2'
     sampler = 'triplet'
@@ -185,10 +188,11 @@ def train_viquae_dev_r50_gldv2():
 def tuto_viquae_tuto_r50_gldv1():
     name = 'tuto_viquae_tuto_r50_gldv1'
     set_name = 'tuto'
-    train_txt = 'tuto_query.txt'
+    train_txt = 'tuto.txt'
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
+    train_gnd_file = 'training_gnd_tuto.pkl'
     test_gnd_file = 'gnd_tuto.pkl'
     desc_name = 'r50_gldv1'
     sampler = 'triplet'
@@ -199,10 +203,11 @@ def tuto_viquae_tuto_r50_gldv1():
 def tuto_viquae_tuto_r50_gldv2():
     name = 'tuto_viquae_tuto_r50_gldv2'
     set_name = 'tuto'
-    train_txt = 'tuto_query.txt'
+    train_txt = 'tuto.txt'
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
+    train_gnd_file = 'training_gnd_tuto.pkl'
     test_gnd_file = 'gnd_tuto.pkl'
     desc_name = 'r50_gldv2'
     sampler = 'triplet'
@@ -408,7 +413,8 @@ def get_loaders(desc_name, train_data_dir,
     batch_size, test_batch_size, 
     num_workers, pin_memory, 
     sampler, recalls, set_name,
-    num_candidates=100):
+    train_gnd_file,
+    num_candidates=100,):
 
     (train_set, query_train_set), (query_set, gallery_set) = get_sets()
 
@@ -418,8 +424,18 @@ def get_loaders(desc_name, train_data_dir,
         s_name = set_name
         if s_name != '':
             s_name = set_name + '_'
-        train_nn_inds = osp.join(train_data_dir, s_name+'nn_inds_%s.pkl'%desc_name)
-        train_sampler = TripletSampler(train_set.targets, batch_size, train_nn_inds, num_candidates)
+        def map_nnids_labels(train_data_dir, train_gnd_file, s_categories):
+            gnd =  pickle_load(osp.join(train_data_dir, train_gnd_file))
+            selection_gallery = gnd['simlist']
+            s_categories = s_categories.reshape(np.array(selection_gallery).shape)
+            selection_ids_to_cat_dict = [{k: s_categories[i][k] for k in range(len(selection_gallery[i]))} for i in range(len(selection_gallery))]
+
+            return selection_ids_to_cat_dict
+        
+        s_categories = np.loadtxt(train_data_dir+'/tuto_s_categories.txt', dtype='int64')
+        map_nnids_labels = map_nnids_labels(train_data_dir, train_gnd_file, s_categories)
+        train_nn_inds = osp.join(train_data_dir, 'training_' + s_name+'nn_inds_%s.pkl'%desc_name)
+        train_sampler = TripletSampler(train_set.targets, batch_size, train_nn_inds, num_candidates, map_nnids_labels)
     else:
         raise ValueError('Invalid choice of sampler ({}).'.format(sampler))
     train_loader = DataLoader(train_set, batch_sampler=train_sampler, num_workers=num_workers, pin_memory=pin_memory)
