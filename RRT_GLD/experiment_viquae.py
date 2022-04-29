@@ -42,7 +42,7 @@ def config():
     visdom_freq = 100
     cpu = False  # Force training on CPU
     cudnn_flag = 'benchmark'
-    temp_dir = osp.join('outputs', 'temp')
+    temp_file = 'temp'
 
     no_bias_decay = False
     loss = 'bce'
@@ -83,7 +83,7 @@ def get_optimizer_scheduler(parameters, optim, loader_length, epochs, lr, moment
     else:
         scheduler = lr_scheduler.StepLR(optimizer, epochs * loader_length)
         update_per_iteration = True
-
+ 
     return optimizer, (scheduler, update_per_iteration)
 
 
@@ -96,8 +96,9 @@ def get_loss(loss):
 
 
 @ex.automain
-def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_dir, seed, no_bias_decay, max_norm, resume):
+def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_bias_decay, max_norm, resume):
     device = torch.device('cuda:0' if torch.cuda.is_available() and not cpu else 'cpu')
+    temp_dir = osp.join('outputs', temp_file)
     # callback = VisdomLogger(port=visdom_port) if visdom_port else None
     if cudnn_flag == 'deterministic':
         setattr(cudnn, cudnn_flag, True)

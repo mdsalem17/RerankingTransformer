@@ -23,6 +23,7 @@ def config():
     test_data_dir  = None
     train_txt = None
     test_txt  = None
+    train_gnd_file = None
     test_gnd_file = None
     
     batch_size      = 32
@@ -431,8 +432,10 @@ def get_loaders(desc_name, train_data_dir,
             selection_ids_to_cat_dict = [{k: s_categories[i][k] for k in range(len(selection_gallery[i]))} for i in range(len(selection_gallery))]
 
             return selection_ids_to_cat_dict
-        
-        s_categories = np.loadtxt(train_data_dir+'/tuto_s_categories.txt', dtype='int64')
+        s_path = train_data_dir+'/'+set_name+'_s_categories.txt'
+        print('s_path: ', s_path)
+        s_categories = np.loadtxt(s_path, dtype='int64')
+        print('s_categories: ', s_categories.shape)
         map_nnids_labels = map_nnids_labels(train_data_dir, train_gnd_file, s_categories)
         train_nn_inds = osp.join(train_data_dir, 'training_' + s_name+'nn_inds_%s.pkl'%desc_name)
         train_sampler = TripletSampler(train_set.targets, batch_size, train_nn_inds, num_candidates, map_nnids_labels)

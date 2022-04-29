@@ -28,8 +28,8 @@ def config():
     feature_name = 'r50_gldv1'
     set_name = 'tuto'
     gnd_name = 'gnd_' + set_name + '.pkl'
-    #gnd_name = 'training_gnd_' + set_name + '.pkl'
-
+    
+    training = False
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
 
@@ -37,17 +37,24 @@ def config():
     
 
 @ex.automain
-def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_nn_inds):
-    with open(osp.join(data_dir, 'training_query_'+set_name+'.txt')) as fid:
+def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_name, save_nn_inds):
+    
+    if training:
+        query_file     = 'training_query_'+set_name+'.txt'
+        gallery_file   = 'training_gallery_'+set_name+'.txt'
+        selection_file = 'training_selection_'+set_name+'.txt'
+    else:
+        query_file     = set_name+'_query.txt'
+        gallery_file   = set_name+'_gallery.txt'
+        selection_file = set_name+'_selection.txt'
+    
+    with open(osp.join(data_dir, query_file)) as fid:
         query_lines   = fid.read().splitlines()
-    #with open(osp.join(data_dir, set_name+'_query.txt')) as fid:
-    #    query_lines   = fid.read().splitlines()
-    #with open(osp.join(data_dir, set_name+'_gallery.txt')) as fid:
+    #with open(osp.join(data_dir, gallery_file)) as fid:
     #    gallery_lines = fid.read().splitlines()
-    #with open(osp.join(data_dir, set_name+'_selection.txt')) as fid:
-    #    selection_lines = fid.read().splitlines()
-    with open(osp.join(data_dir, 'training_selection_'+set_name+'.txt')) as fid:
+    with open(osp.join(data_dir, selection_file)) as fid:
         selection_lines = fid.read().splitlines()
+        
 
     query_feats = []
     for i in tqdm(range(len(query_lines))):
@@ -58,15 +65,6 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
     query_feats = np.stack(query_feats, axis=0)
     query_feats = query_feats / LA.norm(query_feats, axis=-1)[:, None]
 
-    # selection_lines = np.genfromtxt(osp.join(data_dir, set_name+'_selection_imgs.txt'), dtype='str')
-    # selection_index_feats = []
-    # for i in tqdm(range(len(selection_lines))):
-    #    index_feats = []
-    #    for name in selection_lines[i]:
-    #        path = osp.join(data_dir, 'delg_' + feature_name, name + '.delg_global')
-    #        index_feats.append(datum_io.ReadFromFile(path))
-    #    selection_index_feats.append(datum_io.ReadFromFile(path))
-
     selection_index_feats = []
     for i in tqdm(range(len(selection_lines))):
         name = osp.splitext(osp.basename(selection_lines[i].split(';;')[0]))[0]
@@ -74,13 +72,13 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
         selection_index_feats.append(datum_io.ReadFromFile(path))
         
     selection_index_feats = np.stack(selection_index_feats, axis=0)
-    selection_index_feats = selection_index_feats/LA.norm(selection_index_feats, axis=-1)[:,None]
     selection_index_feats = selection_index_feats.reshape(query_feats.shape[0], 100, query_feats.shape[1])
+    for i in range(selection_index_feats.shape[0]):
+        selection_index_feats[i] = selection_index_feats[i]/LA.norm(selection_index_feats[i], axis=-1)[:,None]
     
     sims = []
     for i in range(len(selection_index_feats)):
         index_feats = np.stack(selection_index_feats[i], axis=0)
-        #index_feats = index_feats / LA.norm(index_feats, axis=-1)[:, None]
         sims.append(np.matmul(query_feats[i], index_feats.T))
 
     sims = np.stack(sims, axis=0)
@@ -100,27 +98,6 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
             query_aug[i] = new_q/LA.norm(new_q, axis=-1)
         sims = np.matmul(query_aug, index_feats.T)
 
-    # x_step = 2000
-    # y_step = 2000
-    # n = len(desc)
-    # nn_inds = []
-    # for i in tqdm(range(0, n, x_step)):
-    #     tmp_pkl_name = osp.join(data_dir, feature_name+'_nn_%09d.pkl'%i)
-    #     if osp.exists(tmp_pkl_name):
-    #         inds = pickle_load(tmp_pkl_name)
-    #         nn_inds.append(inds)
-    #         continue
-    #     xs = desc[i:min(i+x_step, n)]
-    #     sims = []
-    #     for j in range(0, n, y_step):
-    #         ys = desc[j:min(j+y_step, n)]
-    #         ds = np.matmul(xs, ys.T)
-    #         sims.append(ds)
-    #     sims = np.concatenate(sims, axis=-1)
-    #     inds = np.argsort(-sims, axis=-1)[:, 1:101]
-    #     pickle_save(tmp_pkl_name, inds)
-    #     nn_inds.append(inds)
-
     nn_inds = np.argsort(-sims, -1)
     nn_dists = deepcopy(sims)
     for i in range(query_feats.shape[0]):
@@ -128,13 +105,18 @@ def main(data_dir, feature_name, set_name,  use_aqe, aqe_params, gnd_name, save_
             nn_dists[i, j] = sims[i, nn_inds[i, j]]
 
     if save_nn_inds:
-        output_path = osp.join(data_dir, 'training_'+set_name + '_nn_inds_%s.pkl' % feature_name)
+        if use_aqe:
+            output_file = set_name +'_aqe_nn_inds_%s.pkl' % feature_name
+        else:
+            output_file = set_name + '_nn_inds_%s.pkl' % feature_name
+        
+        if training:
+            output_file = 'training_'+ output_file
+        
+        output_path = osp.join(data_dir, output_file)
         pickle_save(output_path, nn_inds)
 
-    # nn_inds = np.concatenate(nn_inds, 0)
-    print(nn_inds.shape)
-    # output_path = osp.join(data_dir, 'nn_inds_%s.pkl'%feature_name)
-    # pickle_save(output_path, nn_inds)
+    print('nn_inds shape: ', nn_inds.shape)
     
     gnd_data = pickle_load(osp.join(data_dir, gnd_name))
     compute_metrics('viquae', nn_inds.T, gnd_data['gnd'], kappas=[1,5,10])
