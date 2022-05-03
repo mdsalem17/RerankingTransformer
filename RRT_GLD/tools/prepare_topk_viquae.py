@@ -65,14 +65,25 @@ def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_na
     query_feats = np.stack(query_feats, axis=0)
     query_feats = query_feats / LA.norm(query_feats, axis=-1)[:, None]
 
-    selection_index_feats = []
+    index_feats = []
     for i in tqdm(range(len(selection_lines))):
         name = osp.splitext(osp.basename(selection_lines[i].split(';;')[0]))[0]
         path = osp.join(data_dir, 'delg_'+feature_name, name+'.delg_global')
-        selection_index_feats.append(datum_io.ReadFromFile(path))
+        index_feats.append(datum_io.ReadFromFile(path))
         
-    selection_index_feats = np.stack(selection_index_feats, axis=0)
-    selection_index_feats = selection_index_feats.reshape(query_feats.shape[0], 100, query_feats.shape[1])
+    selection_index_feats = np.zeros((query_feats.shape[0], 100, query_feats.shape[1]))
+    
+    gnd_data = pickle_load(osp.join(data_dir, gnd_name))
+    selection_index_sizes = [len(gnd_data['simlist'][i]) for i in range(len(gnd_data['simlist']))]
+    
+    size = 0
+    counter = 0
+    for i in range(selection_index_feats.shape[0]):
+        for j in range(selection_index_feats.shape[1]):
+            if j < selection_index_sizes[i]:
+                selection_index_feats[i][j] = index_feats[counter]
+                counter += 1
+    
     for i in range(selection_index_feats.shape[0]):
         selection_index_feats[i] = selection_index_feats[i]/LA.norm(selection_index_feats[i], axis=-1)[:,None]
     
@@ -82,7 +93,7 @@ def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_na
         sims.append(np.matmul(query_feats[i], index_feats.T))
 
     sims = np.stack(sims, axis=0)
-
+    
     if use_aqe:
         alpha = aqe_params['alpha']
         nn_inds = np.argsort(-sims, -1)
@@ -115,8 +126,6 @@ def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_na
         
         output_path = osp.join(data_dir, output_file)
         pickle_save(output_path, nn_inds)
-
-    print('nn_inds shape: ', nn_inds.shape)
     
     gnd_data = pickle_load(osp.join(data_dir, gnd_name))
     compute_metrics('viquae', nn_inds.T, gnd_data['gnd'], kappas=[1,5,10])

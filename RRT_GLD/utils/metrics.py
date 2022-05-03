@@ -13,6 +13,21 @@ from .data.utils import json_save, pickle_save
 import time
 import gc
 
+def fill_in_and_pad(gallery_in, query, sizes):
+    shape = list(query.shape)
+    shape.insert(1, 100)
+    gallery_out = torch.zeros(shape)
+    #print('gallery_out.shape: ', gallery_out.shape)
+    size = 0
+    counter = 0
+    for i in range(gallery_out.size(dim=0)):
+        for j in range(gallery_out.size(dim=1)):
+            #print(counter)
+            if j < sizes[i]:
+                gallery_out[i][j] = gallery_in[counter]
+                counter += 1
+    return gallery_out
+
 class AverageMeter:
     """Computes and stores the average and current value on device"""
 
@@ -72,11 +87,13 @@ def mean_average_precision_viquae_rerank(
     num_samples, top_k = cache_nn_inds.size()
     top_k = min(100, top_k)
     
-    gallery_global = gallery_global.reshape(query_global.size(dim=0), 100, query_global.size(dim=1))
-    gallery_local = gallery_local.reshape(query_local.size(dim=0), 100, query_local.size(dim=1), query_local.size(dim=2))
-    gallery_mask = gallery_mask.reshape(query_mask.size(dim=0), 100, query_mask.size(dim=1))
-    gallery_scales = gallery_scales.reshape(query_scales.size(dim=0), 100, query_scales.size(dim=1))
-    gallery_positions = gallery_positions.reshape(query_positions.size(dim=0), 100, query_positions.size(dim=1), query_positions.size(dim=2))
+    sizes = [len(gnd['simlist'][i]) for i in range(len(gnd['simlist']))]
+    
+    gallery_global    = fill_in_and_pad(gallery_global, query_global, sizes)
+    gallery_local     = fill_in_and_pad(gallery_local, query_local, sizes)
+    gallery_mask      = fill_in_and_pad(gallery_mask, query_mask, sizes)
+    gallery_scales    = fill_in_and_pad(gallery_scales, query_scales, sizes)
+    gallery_positions = fill_in_and_pad(gallery_positions, query_positions, sizes)
 
 
     ########################################################################################
@@ -85,7 +102,7 @@ def mean_average_precision_viquae_rerank(
 
     # Exclude the junk images as in DELG (https://github.com/tensorflow/models/blob/44cad43aadff9dd12b00d4526830f7ea0796c047/research/delf/delf/python/detect_to_retrieve/image_reranking.py#L190)
     for i in range(num_samples):
-        junk_ids = gnd['gnd'][i]['junk']
+        junk_ids = gnd['gnd'][i]['r_neg']
         all_ids = eval_nn_inds[i]
         pos = np.in1d(all_ids, junk_ids)
         neg = np.array([not x for x in pos])
@@ -99,26 +116,26 @@ def mean_average_precision_viquae_rerank(
         nnids = eval_nn_inds[:, i]
         topk_scores =  []
         for iterator in range(nnids.size(dim=0)):
-            index_global = [gallery_global[iterator, nnids[iterator]]]
-            index_local = [gallery_local[iterator, nnids[iterator]]]
-            index_mask = [gallery_mask[iterator, nnids[iterator]]]
-            index_scales = [gallery_scales[iterator, nnids[iterator]]]
-            index_positions = [gallery_positions[iterator, nnids[iterator]]]
+            index_global = gallery_global[iterator, nnids[iterator]]
+            index_local = gallery_local[iterator, nnids[iterator]]
+            index_mask = gallery_mask[iterator, nnids[iterator]]
+            index_scales = gallery_scales[iterator, nnids[iterator]]
+            index_positions = gallery_positions[iterator, nnids[iterator]]
+            
+            index_global = index_global.unsqueeze(dim=0)
+            index_global = index_global.type(torch.float32)
 
-            torch.cuda.empty_cache()
-            index_global = torch.from_numpy(np.stack(index_global, axis=0))
+            index_local = index_local.unsqueeze(dim=0)
+            index_local = index_local.type(torch.float32)
 
-            torch.cuda.empty_cache()
-            index_local = torch.from_numpy(np.stack(index_local, axis=0))
+            index_mask = index_mask.unsqueeze(dim=0)
+            index_mask = index_mask.type(torch.bool)
 
-            torch.cuda.empty_cache()
-            index_mask = torch.from_numpy(np.stack(index_mask, axis=0))
+            index_scales = index_scales.unsqueeze(dim=0)
+            index_scales = index_scales.type(torch.int64)
 
-            torch.cuda.empty_cache()
-            index_scales = torch.from_numpy(np.stack(index_scales, axis=0))
-
-            torch.cuda.empty_cache()
-            index_positions = torch.from_numpy(np.stack(index_positions, axis=0))
+            index_positions = index_positions.unsqueeze(dim=0)
+            index_positions = index_positions.type(torch.float32)
             
             q_global = query_global[iterator].unsqueeze(dim=0)
             q_local = query_local[iterator].unsqueeze(dim=0)

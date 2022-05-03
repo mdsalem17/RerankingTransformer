@@ -397,15 +397,20 @@ def prepare_gnd_for_rrt_training(data_dir, origin_gnd_file, train_gnd_file):
         new_gnd['gnd'].append(gnd_gnd[i])
         categories.append(i)
         
-        if len(gnd_gnd[i]['junk']) == 100:
+        if len(gnd_gnd[i]['r_easy']) == 0:
             continue
                 
-        for j in gnd_gnd[i]['hard']:
-            new_query = selection_gallery[i][j]
+        print('i: ', i)
+        for j in gnd_gnd[i]['r_easy']:
+            new_query = gnd_gnd[i]['rank_img_dict'][j]
+            if not(new_query in selection_gallery[i]):
+                continue
+            
             new_gnd['qimlist'].append(new_query)
             categories.append(i)
             
             new_simlist = selection_gallery[i]
+            print(j)
             new_simlist[j] = new_query
             new_gnd['simlist'].append(new_simlist)
             
@@ -432,8 +437,8 @@ def load_viquae_rrt_training(data_dir, origin_gnd_file, train_gnd_file):
         q_cat = categories[i]
         q_categories.append(q_cat)
         outs.append(';;'.join([osp.join(prefix, query_names[i]), str(q_cat)]))
-        for j in range(100):
-            if j in gnd['gnd'][i]['hard']:
+        for j in range(len(gnd['gnd'][i]['r_hard'])):
+            if j in gnd['gnd'][i]['r_hard']:
                 s_categories.append(q_cat)
                 #outs.append(';;'.join([osp.join(prefix, selection_gallery[i][j]), str(q_cat)]))
             else:
@@ -560,5 +565,5 @@ if __name__ == '__main__':
     ex5.run()
     ex6.run()
     ex7.run()
-    ex8.run()
-    ex9.run()
+    # ex8.run()
+    # ex9.run()

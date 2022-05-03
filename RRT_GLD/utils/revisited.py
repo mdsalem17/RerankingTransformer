@@ -187,7 +187,7 @@ def compute_metrics(dataset, ranks, gnd, kappas=[1, 5, 10]):
         for i in range(ranks.T.shape[0]):
             q_str = 'q_' + str(i)
 
-            qrels_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in gnd[i]['hard']])
+            qrels_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in np.concatenate([gnd[i]['r_easy'],gnd[i]['r_hard']]) ])
             run_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in ranks[:,i]])
 
         qrels = Qrels(qrels_dict)
