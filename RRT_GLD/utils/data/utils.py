@@ -32,12 +32,12 @@ def cid2filename(cid, prefix):
 
 
 class TripletSampler():
-    def __init__(self, labels, batch_size, nn_inds_path, num_candidates, map_nnids_labels):
+    def __init__(self, labels, batch_size, nn_inds_path, num_candidates, gnd_data, min_pos=5):
         self.batch_size     = batch_size
         self.num_candidates = num_candidates
         self.cache_nn_inds  = pickle_load(nn_inds_path)
         self.labels = labels
-        self.map_nnids_labels = map_nnids_labels
+        self.gnd_data = gnd_data
         print('nn_inds_path: ', nn_inds_path)
         print('labels len: ', len(labels))
         assert (len(self.cache_nn_inds) == len(labels))
@@ -45,12 +45,13 @@ class TripletSampler():
         ## Collect valid tuples
         valids = np.zeros_like(labels)
         for i in range(len(self.cache_nn_inds)):
-            nnids = self.cache_nn_inds[i]
-            query_label = labels[i]
-            index_labels = np.array([map_nnids_labels[i][j] for j in nnids])
+            #nnids = self.cache_nn_inds[i]
+            #query_label = labels[i]
+            #index_labels = np.array([map_nnids_labels[i][j] for j in nnids])
             #index_labels = np.array([labels[j] for j in nnids])
-            positives = np.where(index_labels == query_label)[0]
-            if len(positives) < 1:
+            #positives = np.where(index_labels == query_label)[0]
+            positives = self.gnd_data[i]['r_easy']
+            if len(positives) < min_pos:
                 continue
             valids[i] = 1
         self.valids = np.where(valids > 0)[0]
@@ -60,12 +61,12 @@ class TripletSampler():
         batch = []
         cands = torch.randperm(self.num_samples).tolist()
         for i in range(len(cands)):
-            anchor_idx = self.valids[cands[i]]
-            anchor_label = self.labels[anchor_idx]
-            nnids = self.cache_nn_inds[anchor_idx]
+            query_idx = self.valids[cands[i]]
+            anchor_idx = self.gnd_data[query_idx]['anchor_idx']
+            #nnids = self.cache_nn_inds[anchor_idx]
 
-            positive_inds = [j for j in nnids if self.map_nnids_labels[anchor_idx][j] == anchor_label]
-            negative_inds = [j for j in nnids if self.labels[j] != anchor_label]
+            positive_inds = self.gnd_data[query_idx]['g_easy']
+            negative_inds = self.gnd_data[query_idx]['g_junk']
             assert(len(positive_inds) > 0)
             assert(len(negative_inds) > 0)
 
@@ -85,5 +86,4 @@ class TripletSampler():
 
     def __len__(self):
         return (self.num_samples * 3 + self.batch_size - 1) // self.batch_size
-
 

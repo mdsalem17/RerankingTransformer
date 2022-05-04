@@ -374,196 +374,71 @@ def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, r
 
 ###########################################################################
 ## Training on ViQuAE
-def prepare_gnd_for_rrt_training(data_dir, origin_gnd_file, train_gnd_file):
+def prepare_gnd_for_rrt_training(data_dir, in_gnd_file):
     
-    gnd = pickle_load(origin_gnd_file)
-    query_names     = gnd['qimlist']
-    gallery_names   = gnd['imlist']
-    selection_gallery = gnd['simlist']
-    gnd_gnd = gnd['gnd']
-    
-    new_gnd = {}
-    new_gnd['imlist']  = gallery_names
-    new_gnd['qimlist'] = []
-    new_gnd['simlist'] = []
-    new_gnd['gnd'] = []
+    new_gnd           = pickle_load(in_gnd_file)
+    query_names       = new_gnd['qimlist']
+    gallery_names     = new_gnd['imlist']
+    selection_gallery = new_gnd['simlist']
     
     categories = []
     
     for i in range(len(query_names)):
         
-        new_gnd['qimlist'].append(query_names[i])
-        new_gnd['simlist'].append(selection_gallery[i])
-        new_gnd['gnd'].append(gnd_gnd[i])
-        categories.append(i)
-        
-        if len(gnd_gnd[i]['r_easy']) == 0:
-            continue
+        query_img  = query_names[i]
+        anchor_idx = gallery_names.index(query_img)
+        new_gnd['gnd'][i]['anchor_idx'] = anchor_idx
                 
-        print('i: ', i)
-        for j in gnd_gnd[i]['r_easy']:
-            new_query = gnd_gnd[i]['rank_img_dict'][j]
-            if not(new_query in selection_gallery[i]):
-                continue
-            
-            new_gnd['qimlist'].append(new_query)
-            categories.append(i)
-            
-            new_simlist = selection_gallery[i]
-            print(j)
-            new_simlist[j] = new_query
-            new_gnd['simlist'].append(new_simlist)
-            
-            new_gnd['gnd'].append(gnd_gnd[i])
-                
-    pickle_save(train_gnd_file, new_gnd)
-    return new_gnd, categories
-
-def load_viquae_rrt_training(data_dir, origin_gnd_file, train_gnd_file):
-    prefix = 'jpg'
-    #gnd = pickle_load(gnd_file)
-    gnd, categories = prepare_gnd_for_rrt_training(data_dir, origin_gnd_file, train_gnd_file)
-    query_names     = gnd['qimlist']
-    gallery_names   = gnd['imlist']
-    selection_gallery = gnd['simlist']
+        new_gnd['gnd'][i]['g_easy'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['easy']]
+        new_gnd['gnd'][i]['g_hard'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['hard']]
+        new_gnd['gnd'][i]['g_junk'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['junk']]
+        new_gnd['gnd'][i]['g_neg']  = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['neg']]
     
-    random.seed(42)
-    s_cat_list = random.sample(range(len(gnd['qimlist']), 5000000), len(gnd['qimlist'])*100)
-    
-    outs = []
-    q_categories = []
-    s_categories = []
-    for i in range(len(query_names)):
-        q_cat = categories[i]
-        q_categories.append(q_cat)
-        outs.append(';;'.join([osp.join(prefix, query_names[i]), str(q_cat)]))
-        for j in range(len(gnd['gnd'][i]['r_hard'])):
-            if j in gnd['gnd'][i]['r_hard']:
-                s_categories.append(q_cat)
-                #outs.append(';;'.join([osp.join(prefix, selection_gallery[i][j]), str(q_cat)]))
-            else:
-                cat = s_cat_list.pop(0)
-                s_categories.append(cat)
-                #outs.append(';;'.join([osp.join(prefix, selection_gallery[i][j]), str(cat)]))
-    
-    return outs, np.stack(q_categories, axis=0), np.stack(s_categories, axis=0)
-
-def load_train_viquae_dataset(data_dir, train_gnd_file, q_categories, s_categories):
-    prefix = 'jpg'
-    gnd = pickle_load(train_gnd_file)
-    query_names     = gnd['qimlist']
-    gallery_names   = gnd['imlist']
-    selection_gallery = gnd['simlist']
-    
-    s_cats = s_categories.reshape(q_categories.shape[0], 100)
-
-    query_outs     = [';;'.join([ osp.join(prefix, query_names[x]), str(q_categories[x]) ]) for x in range(len(query_names))] 
-    #gallery_outs   = [';;'.join([ osp.join(prefix, x), str(cat_to_label['_'.join(x.split('_')[:-1])]) ]) for x in range(len(gallery_names))]
-    #selection_outs = [';;'.join([ osp.join(prefix, x), str(cat_to_label['_'.join(x.split('_')[:-1])]) ]) for selection_names in selection_gallery for x in selection_names]
-    selection_outs = [';;'.join([ osp.join(prefix, selection_gallery[i][j]), str(s_cats[i][j]) ]) for i in range(len(selection_gallery)) for j in range(100)]
-    
-    return query_outs, selection_outs
+    return new_gnd
 
 ex8 = Experiment('Prepare ViQuAE For Training RRT - Train')
 
-
 @ex8.config
 def config():
-    data_dir   = osp.join('data', 'viquae_for_rrt')
-    train_file  = 'train.txt'
-    test_file  = 'training_query_train.txt'
-    index_file = 'training_gallery_train.txt'
-    selection_file = 'training_selection_train.txt'
-    origin_gnd_file   = 'gnd_train.pkl'
-    train_gnd_file    = 'training_gnd_train.pkl'
-    require_resolution = True
+    data_dir      = osp.join('data', 'viquae_for_rrt')
+    in_gnd_file   = 'gnd_train.pkl'
+    out_gnd_file  = 'training_gnd_train.pkl'
 
 @ex8.main
-def generate_train_viquae(data_dir, train_file, test_file, index_file, selection_file, origin_gnd_file, train_gnd_file, require_resolution):
-    train_file  = osp.join(data_dir, train_file)
-    test_file  = osp.join(data_dir, test_file)
-    index_file = osp.join(data_dir, index_file)
-    selection_file = osp.join(data_dir, selection_file)
+def generate_train_viquae(data_dir, in_gnd_file, out_gnd_file):
+    in_gnd_file   = osp.join(data_dir, in_gnd_file)
+    out_gnd_file  = osp.join(data_dir, out_gnd_file)
     
-    origin_gnd_file   = osp.join(data_dir, origin_gnd_file)
-    train_gnd_file    = osp.join(data_dir, train_gnd_file)
+    out_gnd = prepare_gnd_for_rrt_training(data_dir, in_gnd_file)
+    pickle_save(out_gnd_file, out_gnd)
     
-    train, q_categories, s_categories = load_viquae_rrt_training(data_dir, origin_gnd_file, train_gnd_file)
     
-    test, selection = load_train_viquae_dataset(data_dir, train_gnd_file, q_categories, s_categories)
-    
-    if require_resolution:
-        train  = extract_resolution(data_dir, train, split_char=';;')
-        test  = extract_resolution(data_dir, test, split_char=';;')
-        #index = extract_resolution(data_dir, index, split_char=';;')
-        selection = extract_resolution(data_dir, selection, split_char=';;')
-    
-    with open(train_file, 'w') as f:
-        f.write('\n'.join(train))
-    with open(test_file, 'w') as f:
-        f.write('\n'.join(test))
-    #with open(index_file, 'w') as f:
-    #    f.write('\n'.join(index))
-    with open(selection_file, 'w') as f:
-        f.write('\n'.join(selection))
-        
-    np.savetxt(data_dir+'/train_s_categories.txt', s_categories, fmt='%i')
-
 ex9 = Experiment('Prepare ViQuAE For Training RRT - Tuto')
 
 
 @ex9.config
 def config():
-    data_dir = osp.join('data', 'viquae_for_rrt')
-    train_file  = 'tuto.txt'
-    test_file  = 'training_query_tuto.txt'
-    index_file = 'training_gallery_tuto.txt'
-    selection_file = 'training_selection_tuto.txt'
-    origin_gnd_file   = 'gnd_tuto.pkl'
-    train_gnd_file    = 'training_gnd_tuto.pkl'
-    require_resolution = True
+    data_dir      = osp.join('data', 'viquae_for_rrt')
+    in_gnd_file   = 'gnd_tuto.pkl'
+    out_gnd_file  = 'training_gnd_tuto.pkl'
+
 
 @ex9.main
-def generate_train_viquae(data_dir, train_file, test_file, index_file, selection_file, origin_gnd_file, train_gnd_file, require_resolution):
-    train_file  = osp.join(data_dir, train_file)
-    test_file  = osp.join(data_dir, test_file)
-    index_file = osp.join(data_dir, index_file)
-    selection_file = osp.join(data_dir, selection_file)
+def generate_train_viquae(data_dir, in_gnd_file, out_gnd_file):
+    in_gnd_file   = osp.join(data_dir, in_gnd_file)
+    out_gnd_file  = osp.join(data_dir, out_gnd_file)
     
-    origin_gnd_file   = osp.join(data_dir, origin_gnd_file)
-    train_gnd_file    = osp.join(data_dir, train_gnd_file)
-    
-    train, q_categories, s_categories = load_viquae_rrt_training(data_dir, origin_gnd_file, train_gnd_file)
-    
-    test, selection = load_train_viquae_dataset(data_dir, train_gnd_file, q_categories, s_categories)
-    
-    if require_resolution:
-        train  = extract_resolution(data_dir, train, split_char=';;')
-        test  = extract_resolution(data_dir, test, split_char=';;')
-        #index = extract_resolution(data_dir, index, split_char=';;')
-        selection = extract_resolution(data_dir, selection, split_char=';;')
-    
-    with open(train_file, 'w') as f:
-        f.write('\n'.join(train))
-    with open(test_file, 'w') as f:
-        f.write('\n'.join(test))
-    #with open(index_file, 'w') as f:
-    #    f.write('\n'.join(index))
-    with open(selection_file, 'w') as f:
-        f.write('\n'.join(selection))
-        
-    np.savetxt(data_dir+'/tuto_s_categories.txt', s_categories, fmt='%i')
-
-
+    out_gnd = prepare_gnd_for_rrt_training(data_dir, in_gnd_file)
+    pickle_save(out_gnd_file, out_gnd)
 
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     # ex1.run()
     # ex2.run()
     # ex3.run()
-    ex4.run()
-    ex5.run()
-    ex6.run()
-    ex7.run()
-    # ex8.run()
-    # ex9.run()
+    # ex4.run()
+    # ex5.run()
+    # ex6.run()
+    # ex7.run()
+    ex8.run()
+    ex9.run()
