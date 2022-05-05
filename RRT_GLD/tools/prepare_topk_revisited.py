@@ -78,6 +78,7 @@ def main(data_dir, feature_name, use_aqe, aqe_params, gnd_name, save_nn_inds):
     nn_inds  = np.argsort(-sims, -1)
     nn_dists = deepcopy(sims)
     for i in range(query_feats.shape[0]):
+        index_feats = selection_index_feats[i]
         for j in range(index_feats.shape[0]):
             nn_dists[i, j] = sims[i, nn_inds[i, j]]
 

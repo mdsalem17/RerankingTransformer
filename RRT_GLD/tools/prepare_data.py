@@ -372,73 +372,15 @@ def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, r
     with open(selection_file, 'w') as f:
         f.write('\n'.join(selection))
 
-###########################################################################
-## Training on ViQuAE
-def prepare_gnd_for_rrt_training(data_dir, in_gnd_file):
-    
-    new_gnd           = pickle_load(in_gnd_file)
-    query_names       = new_gnd['qimlist']
-    gallery_names     = new_gnd['imlist']
-    selection_gallery = new_gnd['simlist']
-    
-    categories = []
-    
-    for i in range(len(query_names)):
-        
-        query_img  = query_names[i]
-        anchor_idx = gallery_names.index(query_img)
-        new_gnd['gnd'][i]['anchor_idx'] = anchor_idx
-                
-        new_gnd['gnd'][i]['g_easy'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['easy']]
-        new_gnd['gnd'][i]['g_hard'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['hard']]
-        new_gnd['gnd'][i]['g_junk'] = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['junk']]
-        new_gnd['gnd'][i]['g_neg']  = [gallery_names.index(g_img) for g_img in new_gnd['gnd'][i]['neg']]
-    
-    return new_gnd
-
-ex8 = Experiment('Prepare ViQuAE For Training RRT - Train')
-
-@ex8.config
-def config():
-    data_dir      = osp.join('data', 'viquae_for_rrt')
-    in_gnd_file   = 'gnd_train.pkl'
-    out_gnd_file  = 'training_gnd_train.pkl'
-
-@ex8.main
-def generate_train_viquae(data_dir, in_gnd_file, out_gnd_file):
-    in_gnd_file   = osp.join(data_dir, in_gnd_file)
-    out_gnd_file  = osp.join(data_dir, out_gnd_file)
-    
-    out_gnd = prepare_gnd_for_rrt_training(data_dir, in_gnd_file)
-    pickle_save(out_gnd_file, out_gnd)
-    
-    
-ex9 = Experiment('Prepare ViQuAE For Training RRT - Tuto')
 
 
-@ex9.config
-def config():
-    data_dir      = osp.join('data', 'viquae_for_rrt')
-    in_gnd_file   = 'gnd_tuto.pkl'
-    out_gnd_file  = 'training_gnd_tuto.pkl'
-
-
-@ex9.main
-def generate_train_viquae(data_dir, in_gnd_file, out_gnd_file):
-    in_gnd_file   = osp.join(data_dir, in_gnd_file)
-    out_gnd_file  = osp.join(data_dir, out_gnd_file)
-    
-    out_gnd = prepare_gnd_for_rrt_training(data_dir, in_gnd_file)
-    pickle_save(out_gnd_file, out_gnd)
 
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     # ex1.run()
     # ex2.run()
     # ex3.run()
-    # ex4.run()
-    # ex5.run()
-    # ex6.run()
-    # ex7.run()
-    ex8.run()
-    ex9.run()
+    ex4.run()
+    ex5.run()
+    ex6.run()
+    ex7.run()

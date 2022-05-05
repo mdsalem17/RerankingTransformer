@@ -29,7 +29,6 @@ def config():
     set_name = 'tuto'
     gnd_name = 'gnd_' + set_name + '.pkl'
     
-    training = False
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
 
@@ -37,16 +36,11 @@ def config():
     
 
 @ex.automain
-def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_name, save_nn_inds):
+def main(data_dir, feature_name, set_name, use_aqe, aqe_params, gnd_name, save_nn_inds):
     
-    if training:
-        query_file     = 'training_query_'+set_name+'.txt'
-        gallery_file   = 'training_gallery_'+set_name+'.txt'
-        selection_file = 'training_selection_'+set_name+'.txt'
-    else:
-        query_file     = set_name+'_query.txt'
-        gallery_file   = set_name+'_gallery.txt'
-        selection_file = set_name+'_selection.txt'
+    query_file     = set_name+'_query.txt'
+    gallery_file   = set_name+'_gallery.txt'
+    selection_file = set_name+'_selection.txt'
     
     with open(osp.join(data_dir, query_file)) as fid:
         query_lines   = fid.read().splitlines()
@@ -121,11 +115,9 @@ def main(data_dir, feature_name, set_name, training, use_aqe, aqe_params, gnd_na
         else:
             output_file = set_name + '_nn_inds_%s.pkl' % feature_name
         
-        if training:
-            output_file = 'training_'+ output_file
-        
         output_path = osp.join(data_dir, output_file)
         pickle_save(output_path, nn_inds)
     
     gnd_data = pickle_load(osp.join(data_dir, gnd_name))
-    compute_metrics('viquae', nn_inds.T, gnd_data['gnd'], kappas=[1,5,10])
+    compute_metrics('viquae', nn_inds.T, gnd_data['gnd'], selection_index_sizes, kappas=[1,5,10])
+    
