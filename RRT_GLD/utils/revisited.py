@@ -121,14 +121,13 @@ def compute_map(ranks, gnd, kappas=[]):
     return map, aps, pr, prs
 
 
-def compute_metrics(dataset, ranks, gnd, kappas=[1, 5, 10]):
-    
+def compute_metrics(dataset, ranks, gnd, sizes=[], kappas=[1, 5, 10]):
     # old evaluation protocol
     if dataset.startswith('classic'):
         map, aps, _, _ = compute_map(ranks, gnd)
         out = {'map': np.around(map*100, decimals=3)}
         print('>> {}: mAP {:.2f}'.format(dataset, out['map']))
-
+     
     # new evaluation protocol for revisited dataset
     elif dataset.startswith('revisited'):
         
@@ -179,25 +178,35 @@ def compute_metrics(dataset, ranks, gnd, kappas=[1, 5, 10]):
         print('>> {}: mAP E: {}, M: {}, H: {}'.format(dataset, out['E_map'], out['M_map'], out['H_map']))
         print('>> {}: mP@k{} E: {}, M: {}, H: {}'.format(dataset, kappas, out['E_mp'], out['M_mp'], out['H_mp']))
     
-    # new evaluation protocol for revisited dataset
+    # new evaluation protocol for viquae dataset
     elif dataset.startswith('viquae'):
-
+        metrics = ["map", "mrr", "precision", "hit_rate", "recall"]
+        m_list = [metric for metric in metrics]
+        
+        for i in range(len(kappas)):
+            m_list.extend([metric+'@'+str(kappas[i]) for metric in metrics])
+        
         qrels_dict = {}
         run_dict = {}
+        
         for i in range(ranks.T.shape[0]):
-            q_str = 'q_' + str(i)
-
-            qrels_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in np.concatenate([gnd[i]['r_easy'],gnd[i]['r_hard']]) ])
-            run_dict[q_str] = dict([('d_' + str(i) + '_' + str(key), 1) for key in ranks[:,i]])
-
+            size = sizes[i]
+            q_str = "q_"+str(int(i))
+            ok_inds = np.concatenate([gnd[i]['r_easy'], gnd[i]['r_hard']])
+            
+            if len(ok_inds) == 0:
+                qrels_dict[q_str] = {"DUMMY_RUN": 0}
+            else:
+                qrels_dict[q_str] = dict([('d_' + str(int(key)), 1) for key in ok_inds])
+            
+            run_dict[q_str]   = dict([('d_' + str(int(key)), 1) for key in ranks[:size,i]])
+            
         qrels = Qrels(qrels_dict)
         run = Run(run_dict)
-
-        out = evaluate(qrels, run, ["map", "map@"+str(kappas[0]), "map@"+str(kappas[1]), "map@"+str(kappas[2]),
-                          "mrr", "mrr@"+str(kappas[0]), "mrr@"+str(kappas[1]), "mrr@"+str(kappas[2]),
-                          "precision", "precision@"+str(kappas[0]), "precision@"+str(kappas[1]), "precision@"+str(kappas[2])])
+        out = evaluate(qrels, run, m_list)
+        
         for key, value in out.items():
             out[key] = np.around(value*100, decimals=2)
-        print(out)
-        
+    print(out)
+    
     return out

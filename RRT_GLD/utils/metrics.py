@@ -17,15 +17,14 @@ def fill_in_and_pad(gallery_in, query, sizes):
     shape = list(query.shape)
     shape.insert(1, 100)
     gallery_out = torch.zeros(shape)
-    #print('gallery_out.shape: ', gallery_out.shape)
     size = 0
     counter = 0
     for i in range(gallery_out.size(dim=0)):
         for j in range(gallery_out.size(dim=1)):
-            #print(counter)
             if j < sizes[i]:
                 gallery_out[i][j] = gallery_in[counter]
                 counter += 1
+    
     return gallery_out
 
 class AverageMeter:
@@ -164,8 +163,8 @@ def mean_average_precision_viquae_rerank(
     ranks = deepcopy(eval_nn_inds)
     ranks[:, :top_k] = deepcopy(closest_indices)
     ranks = ranks.cpu().data.numpy().T
-    # pickle_save('eval_nn_inds.pkl', ranks.T)
-    out = compute_metrics('viquae', ranks, gnd['gnd'], kappas=ks)
+    
+    out = compute_metrics('viquae', ranks, gnd['gnd'], sizes, kappas=ks)
 
     ########################################################################################  
     
