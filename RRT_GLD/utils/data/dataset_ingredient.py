@@ -153,7 +153,7 @@ def viquae_test_r50_gldv2():
     sampler = 'random'
 
 ################################################################################################################
-### Old Training
+### Training ViQuAE Resnet50
 
 @data_ingredient.named_config
 def train_viquae_dev_r50_gldv1():
@@ -163,7 +163,7 @@ def train_viquae_dev_r50_gldv1():
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_train.pkl'
+    train_gnd_file = 'gnd_train.pkl'
     test_gnd_file = 'gnd_dev.pkl'
     desc_name = 'r50_gldv1'
     sampler = 'triplet'
@@ -178,7 +178,7 @@ def train_viquae_dev_r50_gldv2():
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_train.pkl'
+    train_gnd_file = 'gnd_train.pkl'
     test_gnd_file = 'gnd_dev.pkl'
     desc_name = 'r50_gldv2'
     sampler = 'triplet'
@@ -188,13 +188,13 @@ def train_viquae_dev_r50_gldv2():
 @data_ingredient.named_config
 def tuto_viquae_tuto_r50_gldv1():
     name = 'tuto_viquae_tuto_r50_gldv1'
-    set_name  = 'tuto'
+    set_name = 'tuto'
     train_txt = ('tuto_query.txt', 'tuto_selection.txt')
-    test_txt  = ('tuto_query.txt', 'tuto_selection.txt')
+    test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_tuto.pkl'
-    test_gnd_file  = 'gnd_tuto.pkl'
+    train_gnd_file = 'gnd_tuto.pkl'
+    test_gnd_file = 'gnd_tuto.pkl'
     desc_name = 'r50_gldv1'
     sampler = 'triplet'
     split_char  = ';;'
@@ -203,75 +203,12 @@ def tuto_viquae_tuto_r50_gldv1():
 @data_ingredient.named_config
 def tuto_viquae_tuto_r50_gldv2():
     name = 'tuto_viquae_tuto_r50_gldv2'
-    set_name  = 'tuto'
-    train_txt = ('tuto_query.txt', 'tuto_selection.txt')
-    test_txt  = ('tuto_query.txt', 'tuto_selection.txt')
-    train_data_dir = 'data/viquae_for_rrt'
-    test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_tuto.pkl'
-    test_gnd_file  = 'gnd_tuto.pkl'
-    desc_name = 'r50_gldv2'
-    sampler = 'triplet'
-    split_char  = ';;'
-
-
-################################################################################################################
-### New Training
-
-@data_ingredient.named_config
-def train_new_viquae_dev_r50_gldv1():
-    name = 'train_new_viquae_dev_r50_gldv1'
-    set_name = 'train'
-    train_txt = ('train_query.txt', 'train_selection.txt')
-    test_txt = ('dev_query.txt', 'dev_selection.txt')
-    train_data_dir = 'data/viquae_for_rrt'
-    test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_train.pkl'
-    test_gnd_file = 'gnd_dev.pkl'
-    desc_name = 'r50_gldv1'
-    sampler = 'triplet'
-    split_char  = ';;'
-
-
-@data_ingredient.named_config
-def train_new_viquae_dev_r50_gldv2():
-    name = 'train_new_viquae_dev_r50_gldv2'
-    set_name = 'train'
-    train_txt = ('train_query.txt', 'train_selection.txt')
-    test_txt = ('dev_query.txt', 'dev_selection.txt')
-    train_data_dir = 'data/viquae_for_rrt'
-    test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_train.pkl'
-    test_gnd_file = 'gnd_dev.pkl'
-    desc_name = 'r50_gldv2'
-    sampler = 'triplet'
-    split_char  = ';;'
-
-
-@data_ingredient.named_config
-def tuto_new_viquae_tuto_r50_gldv1():
-    name = 'tuto_new_viquae_tuto_r50_gldv1'
     set_name = 'tuto'
     train_txt = ('tuto_query.txt', 'tuto_selection.txt')
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_tuto.pkl'
-    test_gnd_file = 'gnd_tuto.pkl'
-    desc_name = 'r50_gldv1'
-    sampler = 'triplet'
-    split_char  = ';;'
-
-
-@data_ingredient.named_config
-def tuto_new_viquae_tuto_r50_gldv2():
-    name = 'tuto_new_viquae_tuto_r50_gldv2'
-    set_name = 'tuto'
-    train_txt = ('tuto_query.txt', 'tuto_selection.txt')
-    test_txt = ('tuto_query.txt', 'tuto_selection.txt')
-    train_data_dir = 'data/viquae_for_rrt'
-    test_data_dir  = 'data/viquae_for_rrt'
-    train_gnd_file = 'training_gnd_tuto.pkl'
+    train_gnd_file = 'gnd_tuto.pkl'
     test_gnd_file = 'gnd_tuto.pkl'
     desc_name = 'r50_gldv2'
     sampler = 'triplet'
@@ -384,7 +321,7 @@ def rparis_r101_gldv2():
 
 
 ################################################################################################################
-### Training
+### Training GLDv2
 
 @data_ingredient.named_config
 def gldv2_roxford_r50_gldv1():
@@ -496,22 +433,6 @@ def get_loaders(desc_name, train_data_dir,
     if sampler == 'random':
         train_sampler = BatchSampler(RandomSampler(train_set), batch_size=batch_size, drop_last=False)
     elif sampler == 'triplet':
-        #s_name = set_name
-        #if s_name != '':
-        #    s_name = set_name + '_'
-        #def map_nnids_labels(train_data_dir, train_gnd_file, s_categories):
-        #    gnd =  pickle_load(osp.join(train_data_dir, train_gnd_file))
-        #    selection_gallery = gnd['simlist']
-        #    s_categories = s_categories.reshape(np.array(selection_gallery).shape)
-        #    selection_ids_to_cat_dict = [{k: s_categories[i][k] for k in range(len(selection_gallery[i]))} for i in range(len(selection_gallery))]
-        #
-        #    return selection_ids_to_cat_dict
-        #s_path = train_data_dir+'/'+set_name+'_s_categories.txt'
-        #print('s_path: ', s_path)
-        #s_categories = np.loadtxt(s_path, dtype='int64')
-        #print('s_categories: ', s_categories.shape)
-        #map_nnids_labels = map_nnids_labels(train_data_dir, train_gnd_file, s_categories)
-        #train_nn_inds = osp.join(train_data_dir, 'training_' + s_name+'nn_inds_%s.pkl'%desc_name)
         train_nn_inds = osp.join(train_data_dir, set_name + '_nn_inds_%s.pkl'%desc_name)
         gnd_data = train_set.gnd_data['gnd']
         train_sampler = TripletSampler(query_train_set.targets, batch_size, train_nn_inds, num_candidates, gnd_data)

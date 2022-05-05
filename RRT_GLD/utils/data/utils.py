@@ -32,7 +32,7 @@ def cid2filename(cid, prefix):
 
 
 class TripletSampler():
-    def __init__(self, labels, batch_size, nn_inds_path, num_candidates, gnd_data, min_pos=5):
+    def __init__(self, labels, batch_size, nn_inds_path, num_candidates, gnd_data, min_pos=1):
         self.batch_size     = batch_size
         self.num_candidates = num_candidates
         self.cache_nn_inds  = pickle_load(nn_inds_path)
@@ -45,11 +45,6 @@ class TripletSampler():
         ## Collect valid tuples
         valids = np.zeros_like(labels)
         for i in range(len(self.cache_nn_inds)):
-            #nnids = self.cache_nn_inds[i]
-            #query_label = labels[i]
-            #index_labels = np.array([map_nnids_labels[i][j] for j in nnids])
-            #index_labels = np.array([labels[j] for j in nnids])
-            #positives = np.where(index_labels == query_label)[0]
             positives = self.gnd_data[i]['r_easy']
             if len(positives) < min_pos:
                 continue
@@ -63,8 +58,7 @@ class TripletSampler():
         for i in range(len(cands)):
             query_idx = self.valids[cands[i]]
             anchor_idx = self.gnd_data[query_idx]['anchor_idx']
-            #nnids = self.cache_nn_inds[anchor_idx]
-
+            
             positive_inds = self.gnd_data[query_idx]['g_easy']
             negative_inds = self.gnd_data[query_idx]['g_junk']
             assert(len(positive_inds) > 0)
