@@ -46,7 +46,8 @@ class TripletSampler():
         valids = np.zeros_like(labels)
         for i in range(len(self.cache_nn_inds)):
             positives = self.gnd_data[i]['r_easy']
-            if len(positives) < min_pos:
+            negatives = self.gnd_data[i]['r_junk']
+            if len(positives) < min_pos or len(negatives) < min_pos:
                 continue
             valids[i] = 1
         self.valids = np.where(valids > 0)[0]
