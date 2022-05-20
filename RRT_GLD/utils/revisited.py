@@ -1,5 +1,6 @@
 import numpy as np
 from ranx import Qrels, Run, evaluate
+from .data.utils import json_save, pickle_save
 
 def compute_ap(ranks, nres):
     """
@@ -121,7 +122,7 @@ def compute_map(ranks, gnd, kappas=[]):
     return map, aps, pr, prs
 
 
-def compute_metrics(dataset, ranks, gnd, sizes=[], kappas=[1, 5, 10]):
+def compute_metrics(dataset, ranks, gnd, sizes=[], kappas=[1, 5, 10], set_name=None, max_sequence_len=None):
     # old evaluation protocol
     if dataset.startswith('classic'):
         map, aps, _, _ = compute_map(ranks, gnd)
@@ -203,6 +204,11 @@ def compute_metrics(dataset, ranks, gnd, sizes=[], kappas=[1, 5, 10]):
             
         qrels = Qrels(qrels_dict)
         run = Run(run_dict)
+        
+        if set_name:
+            json_save(set_name+'_qrels_dict', qrels_dict)
+            json_save(set_name+'_run_dict_'+str(max_sequence_len), run_dict)
+            
         out = evaluate(qrels, run, m_list)
         
         for key, value in out.items():

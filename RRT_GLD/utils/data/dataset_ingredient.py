@@ -18,6 +18,7 @@ data_ingredient = Ingredient('dataset')
 def config():
     name = None
     set_name = ''
+    eval_set_name = ''
     desc_name = None
     train_data_dir = None
     test_data_dir  = None
@@ -26,11 +27,12 @@ def config():
     train_gnd_file = None
     test_gnd_file = None
     
-    batch_size      = 32
-    test_batch_size = 32
+    batch_size      = 36
+    test_batch_size = 36
     max_sequence_len = 500
     split_char  = ','
     sampler = 'random'
+    prefixed = None
 
     num_workers = 8  # number of workers used to load the data
     pin_memory  = True  # use the pin_memory option of DataLoader 
@@ -46,6 +48,7 @@ def config():
 def viquae_tuto_r50_gldv1():
     name = 'viquae_tuto_r50_gldv1'
     set_name = 'tuto'
+    eval_set_name = set_name
     train_txt = 'tuto_query.txt'
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -60,6 +63,7 @@ def viquae_tuto_r50_gldv1():
 def viquae_train_r50_gldv1():
     name = 'viquae_train_r50_gldv1'
     set_name = 'train'
+    eval_set_name = set_name
     train_txt = 'train_query.txt'
     test_txt = ('train_query.txt', 'train_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -73,6 +77,7 @@ def viquae_train_r50_gldv1():
 def viquae_dev_r50_gldv1():
     name = 'viquae_dev_r50_gldv1'
     set_name = 'dev'
+    eval_set_name = set_name
     train_txt = 'dev_query.txt'
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -86,6 +91,7 @@ def viquae_dev_r50_gldv1():
 def viquae_test_r50_gldv1():
     name = 'viquae_test_r50_gldv1'
     set_name = 'test'
+    eval_set_name = set_name
     train_txt = 'test_query.txt'
     test_txt = ('test_query.txt', 'test_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -103,6 +109,7 @@ def viquae_test_r50_gldv1():
 def viquae_tuto_r50_gldv2():
     name = 'viquae_tuto_r50_gldv2'
     set_name = 'tuto'
+    eval_set_name = set_name
     train_txt = 'tuto_query.txt'
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -117,6 +124,7 @@ def viquae_tuto_r50_gldv2():
 def viquae_train_r50_gldv2():
     name = 'viquae_train_r50_gldv2'
     set_name = 'train'
+    eval_set_name = set_name
     train_txt = 'train_query.txt'
     test_txt = ('train_query.txt', 'train_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -130,6 +138,7 @@ def viquae_train_r50_gldv2():
 def viquae_dev_r50_gldv2():
     name = 'viquae_dev_r50_gldv2'
     set_name = 'dev'
+    eval_set_name = set_name
     train_txt = 'dev_query.txt'
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -143,6 +152,7 @@ def viquae_dev_r50_gldv2():
 def viquae_test_r50_gldv2():
     name = 'viquae_test_r50_gldv2'
     set_name = 'test'
+    eval_set_name = set_name
     train_txt = 'test_query.txt'
     test_txt = ('test_query.txt', 'test_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
@@ -159,7 +169,8 @@ def viquae_test_r50_gldv2():
 def train_viquae_dev_r50_gldv1():
     name = 'train_viquae_dev_r50_gldv1'
     set_name = 'train'
-    train_txt = ('train_query.txt', 'train_selection.txt')
+    eval_set_name = 'dev'
+    train_txt = ('train_query.txt', 'train_gallery.txt')
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -174,7 +185,8 @@ def train_viquae_dev_r50_gldv1():
 def train_viquae_dev_r50_gldv2():
     name = 'train_viquae_dev_r50_gldv2'
     set_name = 'train'
-    train_txt = ('train_query.txt', 'train_selection.txt')
+    eval_set_name = 'dev'
+    train_txt = ('train_query.txt', 'train_gallery.txt')
     test_txt = ('dev_query.txt', 'dev_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -189,7 +201,8 @@ def train_viquae_dev_r50_gldv2():
 def tuto_viquae_tuto_r50_gldv1():
     name = 'tuto_viquae_tuto_r50_gldv1'
     set_name = 'tuto'
-    train_txt = ('tuto_query.txt', 'tuto_selection.txt')
+    eval_set_name = 'tuto'
+    train_txt = ('tuto_query.txt', 'tuto_gallery.txt')
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -204,7 +217,8 @@ def tuto_viquae_tuto_r50_gldv1():
 def tuto_viquae_tuto_r50_gldv2():
     name = 'tuto_viquae_tuto_r50_gldv2'
     set_name = 'tuto'
-    train_txt = ('tuto_query.txt', 'tuto_selection.txt')
+    eval_set_name = 'tuto'
+    train_txt = ('tuto_query.txt', 'tuto_gallery.txt')
     test_txt = ('tuto_query.txt', 'tuto_selection.txt')
     train_data_dir = 'data/viquae_for_rrt'
     test_data_dir  = 'data/viquae_for_rrt'
@@ -321,7 +335,7 @@ def rparis_r101_gldv2():
 
 
 ################################################################################################################
-### Training GLDv2
+### Training RRT on GLDv2
 
 @data_ingredient.named_config
 def gldv2_roxford_r50_gldv1():
@@ -384,7 +398,9 @@ class MetricLoaders(NamedTuple):
     num_classes: int
     query: DataLoader
     query_train: DataLoader
+    prefixed: str = None
     set_name: str = ''
+    eval_set_name: str = ''
     gallery: Optional[DataLoader] = None
 
 
@@ -392,26 +408,36 @@ class MetricLoaders(NamedTuple):
 def get_sets(desc_name, 
         train_data_dir, test_data_dir, train_txt, 
         test_txt, train_gnd_file,  test_gnd_file,
-        max_sequence_len, split_char):
+        max_sequence_len, split_char, prefixed):
     ####################################################################################################################################
+    train_gnd_file = prefixed+'_'+train_gnd_file if prefixed is not None and train_gnd_file is not None else train_gnd_file
+    test_gnd_file  = prefixed+'_'+test_gnd_file  if prefixed is not None and test_gnd_file  is not None else test_gnd_file
+    
     if len(train_txt) == 2:
+        
         train_gnd_data  = None if train_gnd_file is None else pickle_load(osp.join(train_data_dir, train_gnd_file))
-        train_lines     = read_file(osp.join(train_data_dir, train_txt[1]))
-        train_q_lines   = read_file(osp.join(train_data_dir, train_txt[0]))
+        train_lines_txt = train_txt[1] if prefixed is None else prefixed+'_'+train_txt[1]
+        train_lines     = read_file(osp.join(train_data_dir, train_lines_txt))
+        train_q_lines_txt = train_txt[0] if prefixed is None else prefixed+'_'+train_txt[0]
+        train_q_lines   = read_file(osp.join(train_data_dir, train_q_lines_txt))
         train_samples   = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in train_lines]
         train_q_samples = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in train_q_lines]
         train_set       = FeatureDataset(train_data_dir, train_samples,   desc_name, max_sequence_len, gnd_data=train_gnd_data)
         query_train_set = FeatureDataset(train_data_dir, train_q_samples, desc_name, max_sequence_len, gnd_data=train_gnd_data)
     else:
         train_gnd_data  = None if train_gnd_file is None else pickle_load(osp.join(train_data_dir, train_gnd_file))
-        train_lines     = read_file(osp.join(train_data_dir, train_txt))
+        train_lines_txt = train_txt if prefixed is None else prefixed+'_'+train_txt
+        train_lines     = read_file(osp.join(train_data_dir, train_lines_txt))
         train_samples   = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in train_lines]
         train_set       = FeatureDataset(train_data_dir, train_samples, desc_name, max_sequence_len, gnd_data=train_gnd_data)
         query_train_set = FeatureDataset(train_data_dir, train_samples, desc_name, max_sequence_len, gnd_data=train_gnd_data)
         ####################################################################################################################################
     test_gnd_data   = None if test_gnd_file is None else pickle_load(osp.join(test_data_dir, test_gnd_file))
-    query_lines     = read_file(osp.join(test_data_dir, test_txt[0]))
-    gallery_lines   = read_file(osp.join(test_data_dir, test_txt[1]))
+    query_lines_txt = test_txt[0] if prefixed is None else prefixed+'_'+test_txt[0]
+    print('query_lines_txt', query_lines_txt)
+    query_lines     = read_file(osp.join(test_data_dir, query_lines_txt))
+    gallery_lines_txt = test_txt[1] if prefixed is None else prefixed+'_'+test_txt[1]
+    gallery_lines   = read_file(osp.join(test_data_dir, gallery_lines_txt))
     query_samples   = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in query_lines]
     gallery_samples = [(line.split(split_char)[0], int(line.split(split_char)[1]), int(line.split(split_char)[2]), int(line.split(split_char)[3])) for line in gallery_lines]
     gallery_set     = FeatureDataset(test_data_dir, gallery_samples, desc_name, max_sequence_len)
@@ -424,16 +450,17 @@ def get_sets(desc_name,
 def get_loaders(desc_name, train_data_dir, 
     batch_size, test_batch_size, 
     num_workers, pin_memory, 
-    sampler, recalls, set_name,
-    train_gnd_file,
-    num_candidates=100,):
+    sampler, recalls, set_name, 
+    eval_set_name, train_gnd_file,
+    prefixed, num_candidates=100):
 
     (train_set, query_train_set), (query_set, gallery_set) = get_sets()
 
     if sampler == 'random':
         train_sampler = BatchSampler(RandomSampler(train_set), batch_size=batch_size, drop_last=False)
     elif sampler == 'triplet':
-        train_nn_inds = osp.join(train_data_dir, set_name + '_nn_inds_%s.pkl'%desc_name)
+        nn_inds_path = set_name+'_nn_inds_%s.pkl'%desc_name if prefixed is None else prefixed+'_'+set_name + '_nn_inds_%s.pkl'%desc_name
+        train_nn_inds = osp.join(train_data_dir, nn_inds_path)
         gnd_data = train_set.gnd_data['gnd']
         train_sampler = TripletSampler(query_train_set.targets, batch_size, train_nn_inds, num_candidates, gnd_data)
     else:
@@ -444,4 +471,4 @@ def get_loaders(desc_name, train_data_dir,
     query_loader   = DataLoader(query_set, batch_size=test_batch_size, num_workers=num_workers, pin_memory=pin_memory)
     gallery_loader = DataLoader(gallery_set, batch_size=test_batch_size, num_workers=num_workers, pin_memory=pin_memory)
 
-    return MetricLoaders(train=train_loader, query_train=query_train_loader, query=query_loader, gallery=gallery_loader, num_classes=len(train_set.categories),set_name=set_name), recalls
+    return MetricLoaders(train=train_loader, query_train=query_train_loader, query=query_loader, gallery=gallery_loader, num_classes=len(train_set.categories),set_name=set_name,eval_set_name=eval_set_name,prefixed=prefixed), recalls

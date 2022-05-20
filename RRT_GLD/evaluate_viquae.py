@@ -56,12 +56,14 @@ def main(cpu, cudnn_flag, visdom_port, visdom_freq, temp_dir, seed, resume):
     # model = nn.DataParallel(model)
     model.eval()
     
-    nn_inds_path = osp.join(loaders.query.dataset.data_dir, loaders.set_name + '_nn_inds_%s.pkl'%loaders.query.dataset.desc_name)
+    nn_inds_path = loaders.set_name + '_nn_inds_%s.pkl'%loaders.query.dataset.desc_name
+    nn_inds_path = nn_inds_path if loaders.prefixed is None else loaders.prefixed+'_'+nn_inds_path
+    nn_inds_path = osp.join(loaders.query.dataset.data_dir, nn_inds_path)
     cache_nn_inds = torch.from_numpy(pickle_load(nn_inds_path)).long()
     # setup partial function to simplify call
     eval_function = partial(evaluate_viquae, model=model, 
         cache_nn_inds=cache_nn_inds,
-        recall=recall_ks, query_loader=loaders.query, gallery_loader=loaders.gallery)
+        recall=recall_ks, query_loader=loaders.query, gallery_loader=loaders.gallery, set_name=loaders.set_name)
 
     # setup best validation logger
     metrics = eval_function()

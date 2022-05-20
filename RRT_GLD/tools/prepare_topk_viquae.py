@@ -25,9 +25,9 @@ ex.captured_out_filter = apply_backspaces_and_linefeeds
 def config():
     dataset_name = 'viquae_for_rrt'
     data_dir = osp.join('data', dataset_name)
-    feature_name = 'r50_gldv1'
+    feature_name = 'r50_gldv2'
     set_name = 'tuto'
-    gnd_name = 'gnd_' + set_name + '.pkl'
+    prefix = None
     
     use_aqe = False
     aqe_params = {'k': 2, 'alpha': 0.3}
@@ -36,11 +36,13 @@ def config():
     
 
 @ex.automain
-def main(data_dir, feature_name, set_name, use_aqe, aqe_params, gnd_name, save_nn_inds):
+def main(data_dir, feature_name, set_name, use_aqe, aqe_params, prefix, save_nn_inds):
     
-    query_file     = set_name+'_query.txt'
-    gallery_file   = set_name+'_gallery.txt'
-    selection_file = set_name+'_selection.txt'
+    gnd_name = 'gnd_'+set_name+'.pkl' if prefix is None else prefix+'_gnd_'+set_name+'.pkl'
+    
+    query_file     = set_name+'_query.txt' if prefix is None else prefix+'_'+set_name+'_query.txt'
+    gallery_file   = set_name+'_gallery.txt' if prefix is None else prefix+'_'+set_name+'_gallery.txt'
+    selection_file = set_name+'_selection.txt' if prefix is None else prefix+'_'+set_name+'_selection.txt'
     
     with open(osp.join(data_dir, query_file)) as fid:
         query_lines   = fid.read().splitlines()
@@ -49,7 +51,6 @@ def main(data_dir, feature_name, set_name, use_aqe, aqe_params, gnd_name, save_n
     with open(osp.join(data_dir, selection_file)) as fid:
         selection_lines = fid.read().splitlines()
         
-
     query_feats = []
     for i in tqdm(range(len(query_lines))):
         name = osp.splitext(osp.basename(query_lines[i].split(';;')[0]))[0]
@@ -115,6 +116,7 @@ def main(data_dir, feature_name, set_name, use_aqe, aqe_params, gnd_name, save_n
         else:
             output_file = set_name + '_nn_inds_%s.pkl' % feature_name
         
+        output_file = output_file if prefix is None else prefix+'_'+output_file
         output_path = osp.join(data_dir, output_file)
         pickle_save(output_path, nn_inds)
     

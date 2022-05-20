@@ -26,14 +26,15 @@ def config():
     dataset_name = 'viquae_for_rrt'
     data_dir = osp.join('data', dataset_name)
     set_name = 'tuto'
-    gnd_name = 'gnd_' + set_name + '.pkl'
+    prefix = None
 
     save_nn_inds = False
     
 
 @ex.automain
-def main(data_dir, set_name, gnd_name, save_nn_inds):
+def main(data_dir, set_name, prefix, save_nn_inds):
     
+    gnd_name = 'gnd_'+set_name+'.pkl' if prefix is None else prefix+'_gnd_'+set_name+'.pkl'
     gnd_data = pickle_load(osp.join(data_dir, gnd_name))
     sizes = [len(gnd_data['simlist'][i]) for i in range(len(gnd_data['simlist']))]
     
@@ -44,9 +45,9 @@ def main(data_dir, set_name, gnd_name, save_nn_inds):
     
     if save_nn_inds:
         if use_aqe:
-            output_file = set_name +'_ir_aqe_nn_inds_%s.pkl' % feature_name
+            output_file = set_name +'_ir_aqe_nn_inds.pkl'
         else:
-            output_file = set_name + '_ir_nn_inds_%s.pkl' % feature_name
+            output_file = set_name + '_ir_nn_inds.pkl'
         
         output_path = osp.join(data_dir, output_file)
         pickle_save(output_path, nn_inds)

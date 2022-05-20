@@ -27,6 +27,19 @@ def fill_in_and_pad(gallery_in, query, sizes):
     
     return gallery_out
 
+
+def remove_padded_indices(rankings, nn_inds, sizes):
+    # rankings.shape -> (nb_queries x 100)
+    assert(len(rankings) == len(sizes))
+    for i in range(len(sizes)):
+        assert(max(nn_inds[i, :sizes[i]]) < sizes[i])
+        rankings[i, :sizes[i]] = np.array([value for value in rankings[i] if value < sizes[i]])
+        rankings[i, sizes[i]:] = nn_inds[i, sizes[i]:]
+        
+    return rankings
+
+
+
 class AverageMeter:
     """Computes and stores the average and current value on device"""
 
@@ -74,7 +87,7 @@ def mean_average_precision_viquae_rerank(
     query_global: torch.Tensor, query_local: torch.Tensor, query_mask: torch.Tensor, query_scales: torch.Tensor, query_positions: torch.Tensor,
     gallery_global: torch.Tensor, gallery_local: torch.Tensor, gallery_mask: torch.Tensor, gallery_scales: torch.Tensor, gallery_positions: torch.Tensor,
     ks: List[int],
-    gnd) -> Dict[str, float]:
+    gnd, set_name=None, max_sequence_len=None) -> Dict[str, float]:
 
     device = next(model.parameters()).device
     query_global    = query_global.to(device)
@@ -99,15 +112,15 @@ def mean_average_precision_viquae_rerank(
     ## Evaluation
     eval_nn_inds = deepcopy(cache_nn_inds.cpu().data.numpy())
 
-    # Exclude the junk images as in DELG (https://github.com/tensorflow/models/blob/44cad43aadff9dd12b00d4526830f7ea0796c047/research/delf/delf/python/detect_to_retrieve/image_reranking.py#L190)
-    for i in range(num_samples):
-        junk_ids = gnd['gnd'][i]['r_neg']
-        all_ids = eval_nn_inds[i]
-        pos = np.in1d(all_ids, junk_ids)
-        neg = np.array([not x for x in pos])
-        new_ids = np.concatenate([np.arange(len(all_ids))[neg], np.arange(len(all_ids))[pos]])
-        new_ids = all_ids[new_ids]
-        eval_nn_inds[i] = new_ids
+    ## Exclude the junk images as in DELG (https://github.com/tensorflow/models/blob/44cad43aadff9dd12b00d4526830f7ea0796c047/research/delf/delf/python/detect_to_retrieve/image_reranking.py#L190)
+    #for i in range(num_samples):
+    #    junk_ids = gnd['gnd'][i]['r_neg']
+    #    all_ids = eval_nn_inds[i]
+    #    pos = np.in1d(all_ids, junk_ids)
+    #    neg = np.array([not x for x in pos])
+    #    new_ids = np.concatenate([np.arange(len(all_ids))[neg], np.arange(len(all_ids))[pos]])
+    #    new_ids = all_ids[new_ids]
+    #    eval_nn_inds[i] = new_ids
     eval_nn_inds = torch.from_numpy(eval_nn_inds)
     
     scores = []
@@ -162,9 +175,10 @@ def mean_average_precision_viquae_rerank(
     closest_indices = torch.gather(eval_nn_inds, -1, indices)
     ranks = deepcopy(eval_nn_inds)
     ranks[:, :top_k] = deepcopy(closest_indices)
-    ranks = ranks.cpu().data.numpy().T
+    ranks = ranks.cpu().data.numpy()
+    ranks = remove_padded_indices(ranks, eval_nn_inds, sizes)
     
-    out = compute_metrics('viquae', ranks, gnd['gnd'], sizes, kappas=ks)
+    out = compute_metrics('viquae', ranks.T, gnd['gnd'], sizes, kappas=ks, set_name=set_name, max_sequence_len=max_sequence_len)
 
     ########################################################################################  
     
