@@ -10,6 +10,7 @@ from sacred import Experiment
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
 # from visdom_logger import VisdomLogger
 from utils.metrics import *
 
@@ -23,6 +24,7 @@ def train_one_epoch(
         scheduler: (_LRScheduler, bool), 
         max_norm: float,
         epoch: int,
+        writer: SummaryWriter,
         # callback: VisdomLogger,
         freq: int,
         ex: Experiment = None) -> None:
@@ -64,10 +66,12 @@ def train_one_epoch(
         train_accs.append(acc)
 
 
-        if not (i + 1) % freq:
-            step = epoch + i / loader_length
-            print('step/loss/accu/lr:', step, train_losses.last_avg.item(), train_accs.last_avg.item(), scheduler[0].get_last_lr()[0])
-            
+        step = epoch + i / loader_length
+        #print('step/loss/accu/lr:', step, train_losses.last_avg.item(), train_accs.last_avg.item(), scheduler[0].get_last_lr()[0])
+        writer.add_scalar('loss/step', train_losses.last_avg.item(),  step)
+        writer.add_scalar('accu/step', train_accs.last_avg.item(),    step)
+        writer.add_scalar('lr/step',   scheduler[0].get_last_lr()[0], step)
+        
 
     if not scheduler[-1]:
         scheduler[0].step()
@@ -77,6 +81,12 @@ def train_one_epoch(
             step = epoch + i / loader_length
             ex.log_scalar('train.loss', loss, step=step)
             ex.log_scalar('train.acc', acc, step=step)
+
+    print('STATISTICS FOR EPOCH ', epoch)
+    print('epoch/loss/accu/lr:', epoch, train_losses.last_avg.item(), train_accs.last_avg.item(), scheduler[0].get_last_lr()[0])
+    writer.add_scalar('loss/epoch', train_losses.last_avg.item(),  epoch)
+    writer.add_scalar('accu/epoch', train_accs.last_avg.item(),    epoch)
+    writer.add_scalar('lr/epoch',   scheduler[0].get_last_lr()[0], epoch)
 
 
 def evaluate_viquae(

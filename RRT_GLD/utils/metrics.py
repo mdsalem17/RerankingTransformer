@@ -122,17 +122,24 @@ def mean_average_precision_viquae_rerank(
     #    new_ids = all_ids[new_ids]
     #    eval_nn_inds[i] = new_ids
     eval_nn_inds = torch.from_numpy(eval_nn_inds)
+    n_queries = gallery_global.size(dim=0)
     
     scores = []
-    for i in tqdm(range(top_k)):
-        nnids = eval_nn_inds[:, i]
-        topk_scores =  []
-        for iterator in range(nnids.size(dim=0)):
-            index_global = gallery_global[iterator, nnids[iterator]]
-            index_local = gallery_local[iterator, nnids[iterator]]
-            index_mask = gallery_mask[iterator, nnids[iterator]]
-            index_scales = gallery_scales[iterator, nnids[iterator]]
-            index_positions = gallery_positions[iterator, nnids[iterator]]
+    for i in tqdm(range(n_queries)):
+        
+        q_global    = query_global[i].unsqueeze(dim=0)
+        q_local     = query_local[i].unsqueeze(dim=0)
+        q_mask      = query_mask[i].unsqueeze(dim=0)
+        q_scales    = query_scales[i].unsqueeze(dim=0)
+        q_positions = query_positions[i].unsqueeze(dim=0)
+        
+        q_scores =  []
+        for j in range(top_k):
+            index_global = gallery_global[i, j]
+            index_local = gallery_local[i, j]
+            index_mask = gallery_mask[i, j]
+            index_scales = gallery_scales[i, j]
+            index_positions = gallery_positions[i, j]
             
             index_global = index_global.unsqueeze(dim=0)
             index_global = index_global.type(torch.float32)
@@ -149,30 +156,25 @@ def mean_average_precision_viquae_rerank(
             index_positions = index_positions.unsqueeze(dim=0)
             index_positions = index_positions.type(torch.float32)
             
-            q_global = query_global[iterator].unsqueeze(dim=0)
-            q_local = query_local[iterator].unsqueeze(dim=0)
-            q_mask = query_mask[iterator].unsqueeze(dim=0)
-            q_scales = query_scales[iterator].unsqueeze(dim=0)
-            q_positions = query_positions[iterator].unsqueeze(dim=0)
+
 
             iter_scores = model(
-            q_global, q_local, q_mask, q_scales, q_positions,
+                q_global, q_local, q_mask, q_scales, q_positions,
                 index_global.to(device),
                 index_local.to(device),
                 index_mask.to(device),
                 index_scales.to(device),
                 index_positions.to(device))
             
-            topk_scores.append(iter_scores.cpu().data)
+            q_scores.append(iter_scores.cpu().data)
         
-        current_scores = torch.from_numpy(np.stack(topk_scores, axis=0)).squeeze(1)
-        torch.cuda.empty_cache()        
+        current_scores = torch.from_numpy(np.stack(q_scores, axis=0)).squeeze(1)
+        torch.cuda.empty_cache() 
         scores.append(current_scores.cpu().data)
     
     
-    scores = torch.stack(scores, -1) # nb_queries x 100
-    closest_dists, indices = torch.sort(scores, dim=-1, descending=True)
-    closest_indices = torch.gather(eval_nn_inds, -1, indices)
+    scores = torch.stack(scores, axis=0) # nb_queries x 100
+    closest_dists, closest_indices = torch.sort(scores, dim=-1, descending=True)
     ranks = deepcopy(eval_nn_inds)
     ranks[:, :top_k] = deepcopy(closest_indices)
     ranks = ranks.cpu().data.numpy()

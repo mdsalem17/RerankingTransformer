@@ -11,6 +11,7 @@ from sacred import SETTINGS
 from sacred.utils import apply_backspaces_and_linefeeds
 from torch.backends import cudnn
 from torch.optim import SGD, Adam, AdamW, lr_scheduler
+from torch.utils.tensorboard import SummaryWriter
 # from visdom_logger import VisdomLogger
 
 from models.ingredient import model_ingredient, get_model
@@ -25,17 +26,16 @@ ex = sacred.Experiment('RRT Training', ingredients=[data_ingredient, model_ingre
 SETTINGS.CAPTURE_MODE = 'sys'
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 
-
 @ex.config
 def config():
-    epochs = 15
-    lr = 0.0001
+    epochs = 25
+    lr = 1e-4
     momentum = 0.
     nesterov = False
-    weight_decay = 5e-4
+    weight_decay = 5e-5
     optim = 'adamw'
     scheduler = 'multistep'
-    max_norm = 0.0
+    max_norm = 0.1
     seed = 0
 
     visdom_port = None
@@ -46,7 +46,7 @@ def config():
 
     no_bias_decay = False
     loss = 'bce'
-    scheduler_tau = [16, 18]
+    scheduler_tau = [10, 20]
     scheduler_gamma = 0.1
 
     resume = None
@@ -102,6 +102,9 @@ def get_loss(loss):
 def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_bias_decay, max_norm, classifier, transformer, last_layers, resume):
     device = torch.device('cuda:0' if torch.cuda.is_available() and not cpu else 'cpu')
     temp_dir = osp.join('outputs', temp_file)
+    logs_dir = osp.join('logs', temp_file)
+    writer = SummaryWriter(logs_dir)
+
     # callback = VisdomLogger(port=visdom_port) if visdom_port else None
     if cudnn_flag == 'deterministic':
         setattr(cudnn, cudnn_flag, True)
@@ -204,9 +207,7 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
             setattr(cudnn, cudnn_flag, True)
 
         torch.cuda.empty_cache()
-        # train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, epoch=epoch, callback=callback, freq=visdom_freq, ex=ex)
-        # train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, max_norm=max_norm, epoch=epoch, callback=callback, freq=visdom_freq, ex=None)
-        train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, max_norm=max_norm, epoch=epoch, freq=visdom_freq, ex=None)
+        train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, max_norm=max_norm, epoch=epoch, freq=visdom_freq, writer=writer, ex=None)
 
         # validation
         if cudnn_flag == 'benchmark':
@@ -220,8 +221,12 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
                                                               query_feats=query_feats, 
                                                               gallery_feats=gallery_feats)
         print('Validation [{:03d}]'.format(epoch)), pprint(result)
+        
         ex.log_scalar('val.map', result['map'], step=epoch + 1)
-
+        writer.add_scalar('eval/map', result['map'],  epoch)
+        writer.add_scalar('eval/mrr', result['mrr'],    epoch)
+        writer.add_scalar('eval/precision@1', result['precision@1'], epoch)
+        
         if result['map'] >= best_val[1]['map']:
             print('New best model in epoch %d.'%epoch)
             best_val = (epoch + 1, result, deepcopy(model.state_dict()))
@@ -230,10 +235,8 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
     # logging
     ex.info['metrics'] = best_val[1]
     ex.add_artifact(save_name)
-
-    # if callback is not None:
-    #     save_name = os.path.join(temp_dir, 'visdom_data.pt')
-    #     callback.save(save_name)
-    #     ex.add_artifact(save_name)
+    writer.flush()
+    writer.close()
+    
 
     return best_val[1]
