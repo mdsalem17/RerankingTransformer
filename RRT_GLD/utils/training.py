@@ -22,6 +22,7 @@ def train_one_epoch(
         optimizer: Optimizer,
         # the second entry indicates if the scheduler should step per iteration or epoch
         scheduler: (_LRScheduler, bool), 
+        scheduling: bool, 
         max_norm: float,
         epoch: int,
         writer: SummaryWriter,
@@ -59,8 +60,9 @@ def train_one_epoch(
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
 
-        if scheduler[-1]:
-            scheduler[0].step()
+        if scheduling:
+            if scheduler[-1]:
+                scheduler[0].step()
 
         train_losses.append(loss)
         train_accs.append(acc)
@@ -73,8 +75,9 @@ def train_one_epoch(
         writer.add_scalar('lr/step',   scheduler[0].get_last_lr()[0], step)
         
 
-    if not scheduler[-1]:
-        scheduler[0].step()
+    if scheduling:
+        if not scheduler[-1]:
+            scheduler[0].step()
 
     if ex is not None:
         for i, (loss, acc) in enumerate(zip(train_losses.values_list, train_accs.values_list)):
