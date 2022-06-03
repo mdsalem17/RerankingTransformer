@@ -251,12 +251,12 @@ def config():
 
 @ex4.main
 def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, require_resolution):
-    pref = 'humans_'
-    #pref = ''
-    test_file  = osp.join(data_dir, pref+test_file)
-    index_file = osp.join(data_dir, pref+index_file)
-    selection_file = osp.join(data_dir, pref+selection_file)
-    gnd_file   = osp.join(data_dir, pref+gnd_file)
+    pref = 'non_humans_'
+    pref = ''
+    test_file  = osp.join(data_dir, 'training/'+pref+test_file)
+    index_file = osp.join(data_dir, 'training/'+pref+index_file)
+    selection_file = osp.join(data_dir, 'training/'+pref+selection_file)
+    gnd_file   = osp.join(data_dir, 'training/'+pref+gnd_file)
     test, index, selection = load_viquae_dataset(data_dir, gnd_file)
     gnd = pickle_load(gnd_file)
 
@@ -360,12 +360,12 @@ def config():
 
 @ex7.main
 def generate_viquae(data_dir, test_file, index_file, selection_file, gnd_file, require_resolution):
-    pref = 'humans_'
+    pref = 'non_humans_'
     pref = ''
-    test_file  = osp.join(data_dir, pref+test_file)
-    index_file = osp.join(data_dir, pref+index_file)
-    selection_file = osp.join(data_dir, pref+selection_file)
-    gnd_file   = osp.join(data_dir, pref+gnd_file)
+    test_file  = osp.join(data_dir, 'training/'+pref+test_file)
+    index_file = osp.join(data_dir, 'training/'+pref+index_file)
+    selection_file = osp.join(data_dir, 'training/'+pref+selection_file)
+    gnd_file   = osp.join(data_dir, 'training/'+pref+gnd_file)
     test, index, selection = load_viquae_dataset(data_dir, gnd_file)
     
     if require_resolution:
@@ -388,7 +388,7 @@ if __name__ == '__main__':
     # ex1.run()
     # ex2.run()
     # ex3.run()
-    # ex7.run()
+    ex7.run()
     ex4.run()
     # ex5.run()
     # ex6.run()
