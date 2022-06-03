@@ -28,14 +28,14 @@ ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 @ex.config
 def config():
-    epochs = 25
+    epochs = 100
     lr = 1e-4
     momentum = 0.
     nesterov = False
     weight_decay = 5e-5
     optim = 'adamw'
     scheduler = 'multistep'
-    max_norm = 0.1
+    max_norm = 0.0
     seed = 0
 
     visdom_port = None
@@ -53,6 +53,7 @@ def config():
     classifier = False
     transformer = False
     last_layers = False
+    scheduling = False
 
 
 @ex.capture
@@ -99,7 +100,7 @@ def get_loss(loss):
 
 
 @ex.automain
-def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_bias_decay, max_norm, classifier, transformer, last_layers, resume):
+def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_bias_decay, max_norm, classifier, transformer, last_layers, resume, scheduling):
     device = torch.device('cuda:0' if torch.cuda.is_available() and not cpu else 'cpu')
     temp_dir = osp.join('outputs', temp_file)
     logs_dir = osp.join('logs', temp_file)
@@ -112,7 +113,7 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
     torch.manual_seed(seed)
     loaders, recall_ks = get_loaders()
 
-    torch.manual_seed(seed+1)
+    #torch.manual_seed(seed+1)
     model = get_model()    
     if classifier:
         #freeze all layers of the model
@@ -163,7 +164,7 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
     print('nn_inds_path:', nn_inds_path)
     cache_nn_inds = torch.from_numpy(pickle_load(nn_inds_path)).long()
 
-    torch.manual_seed(seed+2)
+    #torch.manual_seed(seed+2)
     model.to(device)
     model = nn.DataParallel(model)
     parameters = []
@@ -177,7 +178,7 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
         optimizer.load_state_dict(checkpoint['optim'])
         del checkpoint
 
-    torch.manual_seed(seed+3)
+    #torch.manual_seed(seed+3)
     query_feats, gallery_feats = [], []
     #eval_function = partial(evaluate_viquae, model=model, 
     #    cache_nn_inds=cache_nn_inds,
@@ -201,13 +202,13 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
     save_name = osp.join(temp_dir, '{}_{}.pt'.format(ex.current_run.config['model']['name'],
                                                          ex.current_run.config['dataset']['name']))
     os.makedirs(temp_dir, exist_ok=True)
-    torch.manual_seed(seed+4)
+    #torch.manual_seed(seed+4)
     for epoch in range(epochs):
         if cudnn_flag == 'benchmark':
             setattr(cudnn, cudnn_flag, True)
 
         torch.cuda.empty_cache()
-        train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, max_norm=max_norm, epoch=epoch, freq=visdom_freq, writer=writer, ex=None)
+        train_one_epoch(model=model, loader=loaders.train, class_loss=class_loss, optimizer=optimizer, scheduler=scheduler, max_norm=max_norm, epoch=epoch, freq=visdom_freq, writer=writer, ex=None, scheduling=scheduling)
 
         # validation
         if cudnn_flag == 'benchmark':
@@ -226,6 +227,15 @@ def main(epochs, cpu, cudnn_flag, visdom_port, visdom_freq, temp_file, seed, no_
         writer.add_scalar('eval/map', result['map'],  epoch)
         writer.add_scalar('eval/mrr', result['mrr'],    epoch)
         writer.add_scalar('eval/precision@1', result['precision@1'], epoch)
+        writer.add_scalar('eval/precision@5', result['precision@5'], epoch)
+        
+        save_name_epoch = osp.join(temp_dir, '{}_{}_{}.pt'.format(ex.current_run.config['model']['name'],
+                                                                  ex.current_run.config['dataset']['name'],
+                                                                  epoch))
+        
+        
+        epoch_val = (epoch + 1, result, deepcopy(model.state_dict()))
+        torch.save({'state': state_dict_to_cpu(epoch_val[2]), 'optim': optimizer.state_dict()}, save_name_epoch)
         
         if result['map'] >= best_val[1]['map']:
             print('New best model in epoch %d.'%epoch)
