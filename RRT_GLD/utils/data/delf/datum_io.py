@@ -27,7 +27,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from .protos import datum_pb2
+from delf import datum_pb2
 
 
 def ArrayToDatum(arr):
