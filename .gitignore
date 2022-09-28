@@ -1,3 +1,9 @@
+##experiments
+RRT_GLD/notebooks/
+RRT_GLD/data/viquae_for_rrt/delg_r50_gldv2
+RRT_GLD/data/viquae_for_rrt/imagenet_r50
+RRT_GLD/data/viquae_for_rrt/jpg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
